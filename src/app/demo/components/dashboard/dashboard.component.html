@@ -1,0 +1,238 @@
+<div class="dashboard-wrapper">
+
+  <!-- Header -->
+  <div class="dashboard-header">
+    <div class="header-left">
+      <h1 class="dashboard-title">Tableau de bord</h1>
+      <p class="dashboard-subtitle">Vue d'ensemble de votre portefeuille immobilier</p>
+    </div>
+    <div class="header-right">
+      <div class="date-badge">
+        <i class="pi pi-calendar"></i>
+        <span>{{ today | date:'MMMM yyyy' }}</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- KPI Cards -->
+  <div class="kpi-grid">
+
+    <div class="kpi-card kpi-blue" (click)="goToMaisons()">
+      <div class="kpi-icon-wrap">
+        <i class="pi pi-home"></i>
+      </div>
+      <div class="kpi-content">
+        <span class="kpi-label">Maisons disponibles</span>
+        <span class="kpi-value">{{ maisonsDisponibles }}</span>
+      </div>
+      <div class="kpi-footer">
+        <span class="kpi-badge badge-green">+{{ nouvellesMaisons }}</span>
+        <span class="kpi-footer-text">ajoutées ce mois</span>
+      </div>
+      <div class="kpi-arrow"><i class="pi pi-arrow-right"></i></div>
+    </div>
+
+    <div class="kpi-card kpi-teal" (click)="goToLocataires()">
+      <div class="kpi-icon-wrap">
+        <i class="pi pi-users"></i>
+      </div>
+      <div class="kpi-content">
+        <span class="kpi-label">Locataires actifs</span>
+        <span class="kpi-value">{{ locatairesActifs }}</span>
+      </div>
+      <div class="kpi-footer">
+        <span class="kpi-badge badge-green">+{{ nouveauxLocataires }}</span>
+        <span class="kpi-footer-text">ce mois</span>
+      </div>
+      <div class="kpi-arrow"><i class="pi pi-arrow-right"></i></div>
+    </div>
+
+    <div class="kpi-card kpi-green" (click)="goToPaiements()">
+      <div class="kpi-icon-wrap">
+        <i class="pi pi-wallet"></i>
+      </div>
+      <div class="kpi-content">
+        <span class="kpi-label">Loyers encaissés</span>
+        <span class="kpi-value">{{ loyersTotal | numberSpace }} <small>FCFA</small></span>
+      </div>
+      <div class="kpi-footer">
+        <span class="kpi-badge badge-green">{{ tauxVariation }}%</span>
+        <span class="kpi-footer-text">depuis le mois dernier</span>
+      </div>
+      <div class="kpi-arrow"><i class="pi pi-arrow-right"></i></div>
+    </div>
+
+    <div class="kpi-card kpi-red" (click)="goToPaiementsEnRetard()">
+      <div class="kpi-icon-wrap">
+        <i class="pi pi-exclamation-triangle"></i>
+      </div>
+      <div class="kpi-content">
+        <span class="kpi-label">Paiements en retard</span>
+        <span class="kpi-value danger">{{ sommePaiementRetard | numberSpace }} <small>FCFA</small></span>
+      </div>
+      <div class="kpi-footer">
+        <span class="kpi-badge badge-red">{{ locatairesEnRetard }}</span>
+        <span class="kpi-footer-text">locataires concernés</span>
+      </div>
+      <div class="kpi-arrow"><i class="pi pi-arrow-right"></i></div>
+    </div>
+
+  </div>
+
+  <!-- Detail Cards -->
+  <div class="detail-grid">
+
+    <!-- Locataires -->
+    <div class="detail-card">
+      <div class="detail-card-header">
+        <div class="detail-card-icon bg-teal">
+          <i class="pi pi-users"></i>
+        </div>
+        <h3>État des locataires</h3>
+      </div>
+      <div class="detail-stats">
+        <div class="stat-row">
+          <div class="stat-dot dot-green"></div>
+          <span class="stat-label">Actifs</span>
+          <span class="stat-value text-green">{{ locatairesActifs }}</span>
+        </div>
+        <div class="stat-divider"></div>
+        <div class="stat-row">
+          <div class="stat-dot dot-red"></div>
+          <span class="stat-label">En retard</span>
+          <span class="stat-value text-red">{{ locatairesEnRetard }}</span>
+        </div>
+        <div class="stat-divider"></div>
+        <div class="stat-row">
+          <div class="stat-dot dot-gray"></div>
+          <span class="stat-label">Total</span>
+          <span class="stat-value text-gray">{{ totalLocataires }}</span>
+        </div>
+      </div>
+      <div class="progress-bar-wrap">
+        <div class="progress-bar-track">
+          <div class="progress-bar-fill bg-teal"
+               [style.width.%]="totalLocataires > 0 ? (locatairesActifs / totalLocataires) * 100 : 0">
+          </div>
+        </div>
+        <span class="progress-label">
+          {{ totalLocataires > 0 ? ((locatairesActifs / totalLocataires) * 100 | number:'1.0-0') : 0 }}% actifs
+        </span>
+      </div>
+    </div>
+
+    <!-- Maisons -->
+    <div class="detail-card">
+      <div class="detail-card-header">
+        <div class="detail-card-icon bg-blue">
+          <i class="pi pi-home"></i>
+        </div>
+        <h3>État des maisons</h3>
+      </div>
+      <div class="detail-stats">
+        <div class="stat-row">
+          <div class="stat-dot dot-green"></div>
+          <span class="stat-label">Disponibles</span>
+          <span class="stat-value text-green">{{ maisonsDisponibles }}</span>
+        </div>
+        <div class="stat-divider"></div>
+        <div class="stat-row">
+          <div class="stat-dot dot-red"></div>
+          <span class="stat-label">Occupées</span>
+          <span class="stat-value text-red">{{ maisonsNonDisponibles }}</span>
+        </div>
+        <div class="stat-divider"></div>
+        <div class="stat-row">
+          <div class="stat-dot dot-blue"></div>
+          <span class="stat-label">Nouvelles</span>
+          <span class="stat-value text-blue">{{ nouvellesMaisons }}</span>
+        </div>
+        <div class="stat-divider"></div>
+        <div class="stat-row">
+          <div class="stat-dot dot-gray"></div>
+          <span class="stat-label">Total</span>
+          <span class="stat-value text-gray">{{ totalMaisons }}</span>
+        </div>
+      </div>
+      <div class="progress-bar-wrap">
+        <div class="progress-bar-track">
+          <div class="progress-bar-fill bg-blue"
+               [style.width.%]="totalMaisons > 0 ? (maisonsDisponibles / totalMaisons) * 100 : 0">
+          </div>
+        </div>
+        <span class="progress-label">
+          {{ totalMaisons > 0 ? ((maisonsDisponibles / totalMaisons) * 100 | number:'1.0-0') : 0 }}% disponibles
+        </span>
+      </div>
+    </div>
+
+    <!-- Contrats -->
+    <div class="detail-card">
+      <div class="detail-card-header">
+        <div class="detail-card-icon bg-purple">
+          <i class="pi pi-file"></i>
+        </div>
+        <h3>État des contrats</h3>
+      </div>
+      <div class="detail-stats">
+        <div class="stat-row">
+          <div class="stat-dot dot-green"></div>
+          <span class="stat-label">Actifs</span>
+          <span class="stat-value text-green">{{ contratsActifs }}</span>
+        </div>
+        <div class="stat-divider"></div>
+        <div class="stat-row">
+          <div class="stat-dot dot-gray"></div>
+          <span class="stat-label">Terminés</span>
+          <span class="stat-value text-gray">{{ contratsTermines }}</span>
+        </div>
+        <div class="stat-divider"></div>
+        <div class="stat-row">
+          <div class="stat-dot dot-gray"></div>
+          <span class="stat-label">Total</span>
+          <span class="stat-value text-gray">{{ contratsTotal }}</span>
+        </div>
+      </div>
+      <div class="progress-bar-wrap">
+        <div class="progress-bar-track">
+          <div class="progress-bar-fill bg-purple"
+               [style.width.%]="contratsTotal > 0 ? (contratsActifs / contratsTotal) * 100 : 0">
+          </div>
+        </div>
+        <span class="progress-label">
+          {{ contratsTotal > 0 ? ((contratsActifs / contratsTotal) * 100 | number:'1.0-0') : 0 }}% actifs
+        </span>
+      </div>
+    </div>
+
+    <!-- Paiements en retard -->
+    <div class="detail-card detail-card-alert">
+      <div class="detail-card-header">
+        <div class="detail-card-icon bg-red">
+          <i class="pi pi-clock"></i>
+        </div>
+        <h3>État des paiements</h3>
+      </div>
+      <div class="detail-stats">
+        <div class="stat-row">
+          <div class="stat-dot dot-red"></div>
+          <span class="stat-label">Paiements en retard</span>
+          <span class="stat-value text-red">{{ nbrPaiementsEnRetard || 0 }}</span>
+        </div>
+        <div class="stat-divider"></div>
+        <div class="stat-row">
+          <div class="stat-dot dot-red"></div>
+          <span class="stat-label">Montant total dû</span>
+          <span class="stat-value text-red" style="font-size: 0.85rem;">
+            {{ sommePaiementRetard | numberSpace }} FCFA
+          </span>
+        </div>
+      </div>
+      <button class="action-btn btn-red" (click)="goToPaiementsEnRetard()">
+        <i class="pi pi-eye"></i>&nbsp; Voir les retards
+      </button>
+    </div>
+
+  </div>
+
+</div>

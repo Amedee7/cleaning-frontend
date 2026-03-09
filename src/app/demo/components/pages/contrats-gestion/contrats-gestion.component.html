@@ -1,0 +1,412 @@
+<p-toast></p-toast>
+<p-confirmDialog></p-confirmDialog>
+
+<div class="cg-wrapper">
+    <!-- PAGE HEADER -->
+    <div class="page-header">
+        <div>
+            <h1 class="page-title">Contrats de gestion</h1>
+            <p class="page-subtitle">Gestion des mandats bailleur / agence</p>
+        </div>
+        <button
+            pButton
+            type="button"
+            label="Nouveau contrat"
+            icon="pi pi-plus"
+            class="btn-primary"
+            (click)="onOpenDialog()"
+        ></button>
+    </div>
+
+    <!-- TABLE CARD -->
+    <div class="table-card">
+        <div class="table-toolbar">
+            <span class="p-input-icon-left search-box">
+                <i class="pi pi-search"></i>
+                <input
+                    pInputText
+                    type="text"
+                    placeholder="Rechercher un contrat..."
+                />
+            </span>
+        </div>
+
+        <p-table
+            [value]="contrats"
+            scrollDirection="both"
+            [scrollable]="true"
+            responsiveLayout="scroll"
+            [paginator]="true"
+            [rowsPerPageOptions]="[10, 20, 50]"
+            [rows]="pageSize"
+            [totalRecords]="totalRecords"
+            styleClass="custom-table"
+        >
+            <ng-template pTemplate="header">
+                <tr>
+                    <th>Propriétaire</th>
+                    <th>Bien</th>
+                    <th>Période</th>
+                    <th>Honoraires</th>
+                    <th>Statut</th>
+                    <th>Créé le</th>
+                    <th class="col-actions">Actions</th>
+                </tr>
+            </ng-template>
+
+            <ng-template pTemplate="body" let-contrat>
+                <tr>
+                    <td>
+                        <div class="owner-cell">
+                            <div class="owner-avatar">
+                                {{
+                                    (contrat.proprietaire?.nom ||
+                                        "?")[0].toUpperCase()
+                                }}
+                            </div>
+                            <div>
+                                <span class="owner-name"
+                                    >{{ contrat.proprietaire?.nom }}
+                                    {{ contrat.proprietaire?.prenom }}</span
+                                >
+                                <span
+                                    class="owner-phone"
+                                    *ngIf="contrat.proprietaire?.telephone"
+                                >
+                                    <i class="pi pi-phone"></i>
+                                    {{ contrat.proprietaire?.telephone }}
+                                </span>
+                            </div>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="house-cell" *ngIf="contrat.maison">
+                            <i class="pi pi-home"></i>
+                            <div>
+                                <span class="house-addr">{{
+                                    contrat.maison?.adresse
+                                }}</span>
+                                <span class="house-type">{{
+                                    contrat.maison?.type_de_maison
+                                }}</span>
+                            </div>
+                        </div>
+                        <span *ngIf="!contrat.maison" class="text-muted"
+                            >—</span
+                        >
+                    </td>
+                    <td>
+                        <div class="period-cell">
+                            <span class="period-date">{{
+                                contrat.date_debut | date: "dd/MM/yyyy"
+                            }}</span>
+                            <i class="pi pi-arrow-right period-arrow"></i>
+                            <span class="period-date">{{
+                                contrat.date_fin
+                                    ? (contrat.date_fin | date: "dd/MM/yyyy")
+                                    : "∞"
+                            }}</span>
+                        </div>
+                    </td>
+                    <td>
+                        <span
+                            class="price-main"
+                            *ngIf="contrat.honoraires_agence"
+                        >
+                            {{ contrat.honoraires_agence | numberSpace }}
+                            <small>FCFA</small>
+                        </span>
+                        <span
+                            *ngIf="!contrat.honoraires_agence"
+                            class="text-muted"
+                            >—</span
+                        >
+                    </td>
+                    <td>
+                        <span
+                            class="status-badge"
+                            [ngClass]="'status-' + contrat.status"
+                        >
+                            <span class="status-dot"></span
+                            >{{ contrat.status || "—" }}
+                        </span>
+                    </td>
+                    <td class="date-cell">
+                        {{ contrat.created_at | date: "dd/MM/yyyy" }}
+                    </td>
+                    <td class="col-actions">
+                        <div class="action-btns">
+                            <button
+                                pButton
+                                type="button"
+                                title="Modifier"
+                                icon="pi pi-pencil"
+                                class="action-btn action-edit"
+                                (click)="editContratGestion(contrat.id)"
+                            ></button>
+                            <button
+                                pButton
+                                type="button"
+                                title="Supprimer"
+                                icon="pi pi-trash"
+                                class="action-btn action-danger"
+                                (click)="deleteContratGestion(contrat.id)"
+                            ></button>
+                            <button
+                                pButton
+                                type="button"
+                                title="Générer PDF"
+                                icon="pi pi-file-pdf"
+                                class="action-btn action-pdf"
+                                (click)="genererContratGestion(contrat.id)"
+                            ></button>
+                            <button
+                                pButton
+                                type="button"
+                                title="Télécharger"
+                                icon="pi pi-download"
+                                class="action-btn action-download"
+                                (click)="telechargerContratGestion(contrat.id)"
+                            ></button>
+
+                            <!-- Dans la table, colonne Actions — remplacer le bouton "marquer signé" -->
+                            <button
+                                *ngIf="
+                                    contrat.facture_contrat_gestion &&
+                                    !contrat.facture_contrat_gestion.est_signee
+                                "
+                                pButton
+                                type="button"
+                                title="Marquer comme signé"
+                                icon="pi pi-check"
+                                class="action-btn action-success"
+                                (click)="
+                                    marquerContratGestionCommeSignee(contrat.id)
+                                "
+                            ></button>
+
+                            <!-- Badge signé si déjà signé -->
+                            <span
+                                *ngIf="
+                                    contrat.facture_contrat_gestion?.est_signee
+                                "
+                                class="decharge-badge decharge-signed"
+                            >
+                                <i class="pi pi-check-circle"></i> Signé
+                            </span>
+                        </div>
+                    </td>
+                </tr>
+            </ng-template>
+
+            <ng-template pTemplate="emptymessage">
+                <tr>
+                    <td colspan="7">
+                        <div class="empty-state">
+                            <i class="pi pi-file"></i>
+                            <p>Aucun contrat de gestion trouvé</p>
+                        </div>
+                    </td>
+                </tr>
+            </ng-template>
+        </p-table>
+    </div>
+</div>
+
+<!-- MODAL CRÉATION -->
+<p-dialog
+    [(visible)]="displayDialog"
+    [style]="{ width: '760px' }"
+    header="Nouveau contrat de gestion"
+    [modal]="true"
+    [closable]="true"
+    styleClass="custom-dialog"
+>
+    <form [formGroup]="contratForm" (ngSubmit)="onCreateContratGestion()">
+        <div class="form-section-title">
+            <i class="pi pi-users"></i> Parties
+        </div>
+        <div class="form-grid form-grid-2">
+            <div class="form-field">
+                <label class="form-label required">Propriétaire</label>
+                <p-dropdown
+                    [options]="owners"
+                    formControlName="proprietaire_id"
+                    placeholder="Sélectionner un propriétaire"
+                    (onChange)="onProprietaireChange($event)"
+                    [showClear]="true"
+                    [filter]="true"
+                    filterPlaceholder="Rechercher..."
+                    appendTo="body"
+                    styleClass="w-full"
+                >
+                </p-dropdown>
+                <small
+                    class="form-error"
+                    *ngIf="
+                        contratForm.controls['proprietaire_id'].invalid &&
+                        contratForm.controls['proprietaire_id'].touched
+                    "
+                >
+                    Le propriétaire est requis.
+                </small>
+            </div>
+            <div class="form-field">
+                <label class="form-label required">Bien immobilier</label>
+                <p-dropdown
+                    id="maison_id"
+                    [options]="filteredHouses"
+                    formControlName="maison_id"
+                    optionValue="id"
+                    optionLabel="label"
+                    placeholder="Sélectionner une maison"
+                    [showClear]="true"
+                    appendTo="body"
+                ></p-dropdown>
+                <small
+                    class="form-error"
+                    *ngIf="
+                        contratForm.controls['maison_id'].invalid &&
+                        contratForm.controls['maison_id'].touched
+                    "
+                >
+                    Le bien est requis.
+                </small>
+            </div>
+        </div>
+
+        <div class="form-section-title mt16">
+            <i class="pi pi-calendar"></i> Période
+        </div>
+        <div class="form-grid form-grid-2">
+            <div class="form-field">
+                <label class="form-label required">Date de début</label>
+                <input
+                    pInputText
+                    type="date"
+                    formControlName="date_debut"
+                    class="w-full"
+                    (change)="onDateDebutChange($any($event.target).value)"
+                />
+                <small
+                    class="form-error"
+                    *ngIf="
+                        contratForm.controls['date_debut'].invalid &&
+                        contratForm.controls['date_debut'].touched
+                    "
+                >
+                    La date de début est requise.
+                </small>
+            </div>
+            <div class="form-field">
+                <label class="form-label"
+                    >Date de fin
+                    <span class="optional-tag">Optionnel</span></label
+                >
+                <input
+                    pInputText
+                    type="date"
+                    formControlName="date_fin"
+                    class="w-full"
+                />
+            </div>
+        </div>
+
+        <div class="form-section-title mt16">
+            <i class="pi pi-wallet"></i> Honoraires
+        </div>
+        <div class="form-grid form-grid-2">
+            <div class="form-field">
+                <label class="form-label"
+                    >Honoraires agence
+                    <span class="optional-tag">Optionnel</span></label
+                >
+                <input
+                    pInputText
+                    type="number"
+                    formControlName="honoraires_agence"
+                    placeholder="Montant en FCFA"
+                    class="w-full"
+                />
+            </div>
+            <div class="form-field">
+                <label class="form-label"
+                    >Modalités de paiement
+                    <span class="optional-tag">Optionnel</span></label
+                >
+                <textarea
+                    pInputTextarea
+                    formControlName="modalites_paiement"
+                    [rows]="2"
+                    placeholder="Ex: Mensuel, trimestriel..."
+                    class="w-full"
+                ></textarea>
+            </div>
+        </div>
+
+        <div class="form-section-title mt16">
+            <i class="pi pi-file-edit"></i> Clauses
+            <span class="optional-tag">Optionnel</span>
+        </div>
+        <div class="form-grid form-grid-2">
+            <div class="form-field">
+                <label class="form-label">Responsabilités de l'agence</label>
+                <textarea
+                    pInputTextarea
+                    formControlName="responsabilites_agence"
+                    [rows]="3"
+                    class="w-full"
+                ></textarea>
+            </div>
+            <div class="form-field">
+                <label class="form-label"
+                    >Responsabilités du propriétaire</label
+                >
+                <textarea
+                    pInputTextarea
+                    formControlName="responsabilites_proprietaire"
+                    [rows]="3"
+                    class="w-full"
+                ></textarea>
+            </div>
+            <div class="form-field">
+                <label class="form-label">Conditions de résiliation</label>
+                <textarea
+                    pInputTextarea
+                    formControlName="conditions_resiliation"
+                    [rows]="3"
+                    class="w-full"
+                ></textarea>
+            </div>
+            <div class="form-field">
+                <label class="form-label">Autres conditions</label>
+                <textarea
+                    pInputTextarea
+                    formControlName="autres_conditions"
+                    [rows]="3"
+                    class="w-full"
+                ></textarea>
+            </div>
+        </div>
+
+        <div class="form-footer">
+            <button
+                pButton
+                type="button"
+                label="Annuler"
+                icon="pi pi-times"
+                class="btn-cancel"
+                (click)="displayDialog = false"
+            ></button>
+            <button
+                pButton
+                type="submit"
+                label="Créer le contrat"
+                icon="pi pi-check"
+                class="btn-primary"
+                [loading]="loading"
+                [disabled]="contratForm.invalid"
+            ></button>
+        </div>
+    </form>
+</p-dialog>

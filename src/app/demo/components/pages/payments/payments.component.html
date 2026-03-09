@@ -1,0 +1,94 @@
+<p-confirmDialog></p-confirmDialog>
+
+<div class="card">
+    <form [formGroup]="searchForm" (ngSubmit)="onSearch()" class="p-fluid formgrid grid">
+    <!-- Date de début -->
+    <div class="field col-12 md:col-4">
+      <label for="dateDebut">Date de début</label>
+      <p-calendar
+        id="dateDebut"
+        formControlName="dateDebut"
+        [showIcon]="true"
+        dateFormat="yy-mm-dd"
+        [maxDate]="maxDate">
+      </p-calendar>
+    </div>
+
+    <!-- Date de fin -->
+    <div class="field col-12 md:col-4">
+      <label for="dateFin">Date de fin</label>
+      <p-calendar
+        id="dateFin"
+        formControlName="dateFin"
+        [showIcon]="true"
+        dateFormat="yy-mm-dd"
+        [minDate]="searchForm.value.dateDebut"
+        [maxDate]="maxDate">
+      </p-calendar>
+    </div>
+
+    <!-- Statut -->
+    <div class="field col-12 md:col-4">
+      <label for="status">Statut</label>
+      <p-dropdown
+        id="status"
+        formControlName="status"
+        [options]="statusOptions"
+        placeholder="Tous">
+      </p-dropdown>
+    </div>
+
+    <!-- Bouton Rechercher -->
+    <div class="field col-12 md:col-6">
+      <button pButton type="submit" [loading]="isLoading" label="Rechercher" class="p-button-success" icon="pi pi-search"></button>
+    </div>
+
+    <div class="field col-12 md:col-6">
+        <button pButton type="button" (click)="downloadExcel()" label="Exporter en Excel" icon="pi pi-file-excel"></button>
+    </div>
+  </form>
+</div>
+
+
+<div class="card">
+    <span>Total des paiements: <p-badge [value]="totalRecords" severity="info"></p-badge></span>
+
+    <p-table
+    [value]="payments"
+    [paginator]="true"
+    [totalRecords]="totalRecords"
+    [rowsPerPageOptions]="[5, 20, 50]"
+    [showCurrentPageReport]="true"
+    [rows]="pageSize"
+    >
+        <ng-template pTemplate="header">
+            <tr>
+            <th>Mois</th>
+            <th>Date normale</th>
+            <th>Montant</th>
+            <th>Status</th>
+            <th>Date de creation</th>
+            <th>Action</th>
+        </tr>
+    </ng-template>
+    <ng-template pTemplate="body" let-p >
+        <tr>
+            <td>{{ p.date_normale_de_paiement | date: 'MMMM yyyy' }}</td>
+            <td>{{ p.date_normale_de_paiement | date: 'dd/MM/yyyy' }}</td>
+            <td>{{ p.montant }} FCFA</td>
+            <td> <p-badge [value]="p.status" [severity]="p.status === 'en_attente' ? 'info' : p.status === 'paye' ? 'success' : p.status === 'en_retard' ? 'warning' : 'danger'"></p-badge></td>
+            <td>{{ p.created_at | date: 'dd/MM/yyyy' }}</td>
+            <td>
+                <button *ngIf="p.status === 'en_attente'" (click)="marquerCommePaye(p)" pButton type="button" label="Payer" class="p-button-success"></button>
+            </td>
+        </tr>
+    </ng-template>
+    <ng-template pTemplate="emptymessage">
+        <tr>
+            <td colspan="6">
+                <p icon="pi pi-info-circle">Aucun paiement trouvé</p>
+            </td>
+        </tr>
+    </ng-template>
+</p-table>
+</div>

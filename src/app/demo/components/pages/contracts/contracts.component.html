@@ -1,0 +1,1012 @@
+<p-toast></p-toast>
+<p-confirmDialog></p-confirmDialog>
+
+<div class="contracts-wrapper">
+    <!-- ===== PAGE HEADER ===== -->
+    <div class="page-header">
+        <div class="page-header-left">
+            <h1 class="page-title">Contrats</h1>
+            <p class="page-subtitle">Gestion des contrats de location</p>
+        </div>
+        <div class="page-header-actions">
+            <button
+                pButton
+                type="button"
+                label="Paiements"
+                icon="pi pi-credit-card"
+                class="btn-outline"
+                (click)="openPaymentModal()"
+            ></button>
+            <button
+                pButton
+                type="button"
+                label="Nouveau contrat"
+                icon="pi pi-plus"
+                class="btn-primary"
+                (click)="openNewContractModal()"
+            ></button>
+        </div>
+    </div>
+
+    <!-- ===== TABLE CARD ===== -->
+    <div class="table-card">
+        <div class="table-card-header">
+            <h2 class="table-card-title">Liste des contrats</h2>
+            <div class="search-wrap">
+                <i class="pi pi-search search-icon"></i>
+                <input
+                    pInputText
+                    type="text"
+                    class="search-input"
+                    (input)="searchContracts($event)"
+                    placeholder="Rechercher un contrat..."
+                />
+            </div>
+        </div>
+
+        <p-table
+            [value]="contracts"
+            scrollDirection="both"
+            [scrollable]="true"
+            responsiveLayout="scroll"
+            [paginator]="true"
+            [rowsPerPageOptions]="[10, 20, 50]"
+            [rows]="pageSize"
+            [totalRecords]="totalRecords"
+            styleClass="custom-table"
+        >
+            <ng-template pTemplate="header">
+                <tr>
+                    <th>Locataire</th>
+                    <th>Maison</th>
+                    <th>Période</th>
+                    <th>Statut</th>
+                    <th>Montant mensuel</th>
+                    <th>Renouvelable</th>
+                    <th>Créé le</th>
+                    <th class="col-actions">Actions</th>
+                </tr>
+            </ng-template>
+
+            <ng-template pTemplate="body" let-contract>
+                <tr class="table-row">
+                    <td>
+                        <div class="tenant-cell">
+                            <div class="tenant-avatar">
+                                {{ (contract.locataire?.nom || "?")[0]
+                                }}{{ (contract.locataire?.prenom || "")[0] }}
+                            </div>
+                            <span
+                                >{{ contract.locataire?.nom }}
+                                {{ contract.locataire?.prenom }}</span
+                            >
+                        </div>
+                    </td>
+                    <td>
+                        <div class="house-cell">
+                            <i class="pi pi-home"></i>
+                            <span>{{ contract.maison?.adresse }}</span>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="period-cell">
+                            <span class="period-date">{{
+                                contract.date_de_debut | date: "dd/MM/yyyy"
+                            }}</span>
+                            <i class="pi pi-arrow-right period-arrow"></i>
+                            <span class="period-date">{{
+                                contract.date_de_fin | date: "dd/MM/yyyy"
+                            }}</span>
+                        </div>
+                    </td>
+                    <td>
+                        <span
+                            class="status-badge"
+                            [ngClass]="'status-' + contract.status"
+                        >
+                            <span class="status-dot"></span>
+                            {{ contract.status | titlecase }}
+                        </span>
+                    </td>
+                    <td>
+                        <span class="amount"
+                            >{{ contract.montant_mensuel | numberSpace }}
+                            <small>FCFA</small></span
+                        >
+                    </td>
+                    <td>
+                        <span
+                            class="renew-badge"
+                            [ngClass]="
+                                contract.renouvelable ? 'renew-yes' : 'renew-no'
+                            "
+                        >
+                            {{ contract.renouvelable ? "Oui" : "Non" }}
+                        </span>
+                    </td>
+                    <td class="date-cell">
+                        {{ contract.created_at | date: "dd/MM/yyyy" }}
+                    </td>
+                    <td class="col-actions">
+                        <div class="action-btns">
+
+                            <!-- Voir — toujours visible -->
+                            <button pButton type="button" title="Voir"
+                                icon="pi pi-eye"
+                                class="action-btn action-info"
+                                (click)="openContractModal(contract, true)">
+                            </button>
+
+                            <!-- Activer — uniquement en_attente -->
+                            <button *ngIf="contract.status === 'en_attente'"
+                                pButton type="button" title="Activer"
+                                icon="pi pi-play"
+                                class="action-btn action-success"
+                                (click)="changerStatut(contract.id, 'en_cours')">
+                            </button>
+
+                            <!-- Suspendre — uniquement en_cours -->
+                            <button *ngIf="contract.status === 'en_cours'"
+                                pButton type="button" title="Suspendre"
+                                icon="pi pi-pause"
+                                class="action-btn action-warning"
+                                (click)="changerStatut(contract.id, 'suspendu')">
+                            </button>
+
+                            <!-- Modifier — uniquement si PAS suspendu et PAS terminé -->
+                            <button *ngIf="contract.status !== 'suspendu' && contract.status !== 'termine'"
+                                pButton type="button" title="Modifier"
+                                icon="pi pi-pencil"
+                                class="action-btn action-edit"
+                                (click)="openContractModal(contract)">
+                            </button>
+
+                            <!-- PDF — toujours visible -->
+                            <button pButton type="button" title="PDF"
+                                icon="pi pi-file-pdf"
+                                class="action-btn action-pdf"
+                                (click)="telechargerContrat(contract.id)">
+                            </button>
+
+                            <!-- Supprimer — uniquement si PAS suspendu et PAS terminé -->
+                            <!-- <button *ngIf="contract.status !== 'suspendu' && contract.status !== 'termine'"
+                                pButton type="button" title="Supprimer"
+                                icon="pi pi-trash"
+                                class="action-btn action-danger"
+                                (click)="deleteContract(contract.id)">
+                            </button> -->
+
+                        </div>
+                    </td>
+                </tr>
+            </ng-template>
+
+            <ng-template pTemplate="emptymessage">
+                <tr>
+                    <td colspan="8">
+                        <div class="empty-state">
+                            <i class="pi pi-file-o"></i>
+                            <p>Aucun contrat trouvé</p>
+                        </div>
+                    </td>
+                </tr>
+            </ng-template>
+        </p-table>
+    </div>
+</div>
+
+<!-- ===== MODAL CONTRAT ===== -->
+
+<p-dialog
+    [header]="
+        isViewMode
+            ? 'Détails du contrat'
+            : contract.id
+              ? 'Modifier le contrat'
+              : 'Nouveau contrat'
+    "
+    [(visible)]="displayContractModal"
+    [modal]="true"
+    [closable]="true"
+    [style]="{ width: '860px' }"
+    styleClass="custom-dialog"
+>
+
+<!-- En haut du modal de modification -->
+<div
+    *ngIf="contract.status === 'en_cours'"
+    style="
+        background: #fffbeb;
+        border: 1px solid #fde68a;
+        border-radius: 8px;
+        padding: 10px 14px;
+        margin-bottom: 16px;
+        font-size: 0.85rem;
+        color: #92400e;
+    "
+>
+    <i class="pi pi-exclamation-triangle"></i>
+    Contrat en cours — seules les informations de contact et la description sont
+    modifiables.
+</div>
+
+<div
+    *ngIf="contract.status === 'termine' || contract.status === 'suspendu'"
+    style="
+        background: #fef2f2;
+        border: 1px solid #fecaca;
+        border-radius: 8px;
+        padding: 10px 14px;
+        margin-bottom: 16px;
+        font-size: 0.85rem;
+        color: #b91c1c;
+    "
+>
+    <i class="pi pi-lock"></i>
+    Ce contrat est {{ contract.status }} — aucune modification n'est possible.
+</div>
+
+
+    <!-- Sélecteur type contrat -->
+    <div class="dialog-section">
+        <div class="form-field">
+            <label class="form-label">Type de contrat</label>
+            <p-dropdown
+                [options]="contractTypes"
+                [(ngModel)]="contract.type_contrat"
+                name="type_contrat"
+                placeholder="Sélectionner le type"
+                [filter]="true"
+                [disabled]="isViewMode"
+                appendTo="body"
+                styleClass="w-full"
+            ></p-dropdown>
+        </div>
+    </div>
+
+    <!-- LOCATION MAISON -->
+    <div *ngIf="contract.type_contrat === 'location_maison'">
+        <form class="dialog-form" #contratForm="ngForm">
+            <div class="form-section-title">
+                <i class="pi pi-home"></i> Informations du bien
+            </div>
+            <div class="form-grid">
+                <div class="form-field">
+                    <label class="form-label required">Maison</label>
+                    <p-dropdown
+                        [options]="houses"
+                        optionLabel="label"
+                        optionValue="id"
+                        [(ngModel)]="contract.maison_id"
+                        name="maison_id"
+                        [disabled]="contract.status !== 'en_attente'"
+                        placeholder="Sélectionner"
+                        [filter]="true"
+                        [disabled]="isViewMode"
+                        required
+                        appendTo="body"
+                        styleClass="w-full"
+                    >
+                    </p-dropdown>
+                </div>
+                <div class="form-field">
+                    <label class="form-label required">Locataire</label>
+                    <p-dropdown
+                        [options]="tenants"
+                        optionLabel="label"
+                        optionValue="id"
+                        [(ngModel)]="contract.locataire_id"
+                        name="locataire_id"
+                        placeholder="Sélectionner"
+                        [filter]="true"
+                        [disabled]="isViewMode"
+                        required
+                        appendTo="body"
+                        styleClass="w-full"
+                    >
+                    </p-dropdown>
+                </div>
+            </div>
+
+            <div class="form-section-title">
+                <i class="pi pi-calendar"></i> Période du contrat
+            </div>
+            <div class="form-grid">
+                <div class="form-field">
+                    <label class="form-label required">Date de début</label>
+                    <input
+                        pInputText
+                        type="date"
+                        [(ngModel)]="contract.date_de_debut"
+                        name="date_de_debut"
+                        [readonly]="isViewMode"
+                        (ngModelChange)="onDateDebutChange($event)"
+                        required
+                        class="w-full"
+                    />
+                </div>
+                <div class="form-field">
+                    <label class="form-label required">Date de fin</label>
+                    <input
+                        pInputText
+                        type="date"
+                        [(ngModel)]="contract.date_de_fin"
+                        name="date_de_fin"
+                        [readonly]="isViewMode"
+                        required
+                        class="w-full"
+                    />
+                </div>
+                <div class="form-field">
+                    <label class="form-label">Renouvelable</label>
+                    <div class="checkbox-row">
+                        <p-checkbox
+                            [(ngModel)]="contract.renouvelable"
+                            name="renouvelable"
+                            [binary]="true"
+                            [disabled]="isViewMode"
+                        >
+                        </p-checkbox>
+                        <span class="checkbox-label"
+                            >Oui, ce contrat est renouvelable</span
+                        >
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-section-title">
+                <i class="pi pi-wallet"></i> Conditions financières
+            </div>
+            <div class="form-grid form-grid-3">
+                <div class="form-field">
+                    <label class="form-label required"
+                        >Montant mensuel (FCFA)</label
+                    >
+                    <input
+                        pInputText
+                        type="number"
+                        [(ngModel)]="contract.montant_mensuel"
+                        [disabled]="contract.status !== 'en_attente'"
+                        (ngModelChange)="onMontantOuMoisChange()"
+                        name="montant_mensuel"
+                        [readonly]="isViewMode"
+                        required
+                        class="w-full"
+                    />
+                </div>
+                <div class="form-field">
+                    <label class="form-label">Mois de caution</label>
+                    <input
+                        pInputText
+                        type="number"
+                        [(ngModel)]="contract.nombre_de_mois_de_caution"
+                        (ngModelChange)="onMontantOuMoisChange()"
+                        name="nombre_de_mois_de_caution"
+                        [readonly]="isViewMode"
+                        class="w-full"
+                    />
+                </div>
+                <div class="form-field">
+                    <label class="form-label">Montant caution (FCFA)</label>
+                    <input
+                        pInputText
+                        type="number"
+                        [(ngModel)]="contract.montant_caution"
+                        name="montant_caution"
+                        [readonly]="true"
+                        class="w-full input-computed"
+                    />
+                </div>
+                <div class="form-field">
+                    <label class="form-label">Mois d'avance</label>
+                    <input
+                        pInputText
+                        type="number"
+                        [(ngModel)]="contract.nombre_de_mois_d_avance"
+                        (ngModelChange)="onMontantOuMoisChange()"
+                        name="nombre_de_mois_d_avance"
+                        [readonly]="isViewMode"
+                        class="w-full"
+                    />
+                </div>
+                <div class="form-field">
+                    <label class="form-label"
+                        >Montant avance loyer (FCFA)</label
+                    >
+                    <input
+                        pInputText
+                        type="number"
+                        [(ngModel)]="contract.montant_avance_de_loyer"
+                        name="montant_avance_de_loyer"
+                        [readonly]="true"
+                        class="w-full input-computed"
+                    />
+                </div>
+            </div>
+
+            <div class="form-section-title">
+                <i class="pi pi-user"></i> Personne à contacter
+            </div>
+            <div class="form-grid form-grid-3">
+                <div class="form-field">
+                    <label class="form-label">Nom</label>
+                    <input
+                        pInputText
+                        [(ngModel)]="contract.nom_de_la_personne_a_contacter"
+                        name="nom_de_la_personne_a_contacter"
+                        [readonly]="isViewMode"
+                        class="w-full"
+                    />
+                </div>
+                <div class="form-field">
+                    <label class="form-label">Prénom</label>
+                    <input
+                        pInputText
+                        [(ngModel)]="contract.prenom_de_la_personne_a_contacter"
+                        name="prenom_de_la_personne_a_contacter"
+                        [readonly]="isViewMode"
+                        class="w-full"
+                    />
+                </div>
+                <div class="form-field">
+                    <label class="form-label">CNI</label>
+                    <input
+                        pInputText
+                        [(ngModel)]="
+                            contract.numero_cni_de_la_personne_a_contacter
+                        "
+                        name="numero_cni_de_la_personne_a_contacter"
+                        [readonly]="isViewMode"
+                        class="w-full"
+                    />
+                </div>
+                <div class="form-field">
+                    <label class="form-label">Téléphone</label>
+                    <input
+                        pInputText
+                        [(ngModel)]="
+                            contract.telephone_de_la_personne_a_contacter
+                        "
+                        name="telephone_de_la_personne_a_contacter"
+                        [readonly]="isViewMode"
+                        class="w-full"
+                    />
+                </div>
+                <div class="form-field">
+                    <label class="form-label">Lieu de résidence</label>
+                    <input
+                        pInputText
+                        [(ngModel)]="
+                            contract.lieu_de_residence_de_la_personne_a_contacter
+                        "
+                        name="lieu_de_residence_de_la_personne_a_contacter"
+                        [readonly]="isViewMode"
+                        class="w-full"
+                    />
+                </div>
+            </div>
+
+            <div class="form-field">
+                <label class="form-label">Description</label>
+                <textarea
+                    pInputTextarea
+                    rows="3"
+                    [(ngModel)]="contract.description"
+                    name="description"
+                    [readonly]="isViewMode"
+                    class="w-full"
+                >
+                </textarea>
+            </div>
+
+            <div *ngIf="!isViewMode" class="dialog-footer">
+                <button
+                    pButton
+                    type="button"
+                    label="Annuler"
+                    icon="pi pi-times"
+                    class="btn-cancel"
+                    (click)="closeContractModal()"
+                ></button>
+                <button
+                    pButton
+                    type="submit"
+                    label="Enregistrer"
+                    icon="pi pi-save"
+                    [disabled]="!contratForm.valid"
+                    (click)="generateContract()"
+                    class="btn-primary"
+                    [loading]="isLoading"
+                ></button>
+            </div>
+        </form>
+    </div>
+
+    <!-- PAYER PARCELLE -->
+    <div *ngIf="contract.type_contrat === 'payer_parcelle'">
+        <form class="dialog-form" #contratForm="ngForm">
+            <div class="form-section-title">
+                <i class="pi pi-map"></i> Informations de la parcelle
+            </div>
+            <div class="form-grid">
+                <div class="form-field">
+                    <label class="form-label required">Parcelle</label>
+                    <p-dropdown
+                        [options]="plots"
+                        optionLabel="label"
+                        optionValue="id"
+                        [(ngModel)]="contract.parcelle_id"
+                        name="parcelle_id"
+                        placeholder="Sélectionner"
+                        [filter]="true"
+                        [disabled]="isViewMode"
+                        required
+                        appendTo="body"
+                        styleClass="w-full"
+                    >
+                    </p-dropdown>
+                </div>
+                <div class="form-field">
+                    <label class="form-label required">Locataire</label>
+                    <p-dropdown
+                        [options]="tenants"
+                        optionLabel="label"
+                        optionValue="id"
+                        [(ngModel)]="contract.locataire_id"
+                        name="locataire_id"
+                        placeholder="Sélectionner"
+                        [filter]="true"
+                        [disabled]="isViewMode"
+                        required
+                        appendTo="body"
+                        styleClass="w-full"
+                    >
+                    </p-dropdown>
+                </div>
+            </div>
+
+            <div class="form-section-title">
+                <i class="pi pi-user"></i> Personne à contacter
+            </div>
+            <div class="form-grid form-grid-3">
+                <div class="form-field">
+                    <label class="form-label">Nom</label>
+                    <input
+                        pInputText
+                        [(ngModel)]="contract.nom_de_la_personne_a_contacter"
+                        name="nom_de_la_personne_a_contacter"
+                        [readonly]="isViewMode"
+                        class="w-full"
+                    />
+                </div>
+                <div class="form-field">
+                    <label class="form-label">Prénom</label>
+                    <input
+                        pInputText
+                        [(ngModel)]="contract.prenom_de_la_personne_a_contacter"
+                        name="prenom_de_la_personne_a_contacter"
+                        [readonly]="isViewMode"
+                        class="w-full"
+                    />
+                </div>
+                <div class="form-field">
+                    <label class="form-label">CNI</label>
+                    <input
+                        pInputText
+                        [(ngModel)]="
+                            contract.numero_cni_de_la_personne_a_contacter
+                        "
+                        name="numero_cni_de_la_personne_a_contacter"
+                        [readonly]="isViewMode"
+                        class="w-full"
+                    />
+                </div>
+                <div class="form-field">
+                    <label class="form-label">Téléphone</label>
+                    <input
+                        pInputText
+                        [(ngModel)]="
+                            contract.telephone_de_la_personne_a_contacter
+                        "
+                        name="telephone_de_la_personne_a_contacter"
+                        [readonly]="isViewMode"
+                        class="w-full"
+                    />
+                </div>
+                <div class="form-field">
+                    <label class="form-label">Lieu de résidence</label>
+                    <input
+                        pInputText
+                        [(ngModel)]="
+                            contract.lieu_de_residence_de_la_personne_a_contacter
+                        "
+                        name="lieu_de_residence_de_la_personne_a_contacter"
+                        [readonly]="isViewMode"
+                        class="w-full"
+                    />
+                </div>
+            </div>
+
+            <div class="form-field">
+                <label class="form-label">Description</label>
+                <textarea
+                    pInputTextarea
+                    rows="3"
+                    [(ngModel)]="contract.description"
+                    name="description"
+                    [readonly]="isViewMode"
+                    class="w-full"
+                >
+                </textarea>
+            </div>
+
+            <div *ngIf="!isViewMode" class="dialog-footer">
+                <button
+                    pButton
+                    type="button"
+                    label="Annuler"
+                    icon="pi pi-times"
+                    class="btn-cancel"
+                    (click)="closeContractModal()"
+                ></button>
+                <button
+                    pButton
+                    type="submit"
+                    label="Enregistrer"
+                    icon="pi pi-save"
+                    [disabled]="!contratForm.valid"
+                    (click)="generateContract()"
+                    class="btn-primary"
+                    [loading]="isLoading"
+                ></button>
+            </div>
+        </form>
+    </div>
+</p-dialog>
+
+<!-- ===== MODAL PAIEMENTS KANBAN ===== -->
+<p-dialog
+    header="Suivi des paiements"
+    [(visible)]="displayPaymentModal"
+    [modal]="true"
+    [closable]="true"
+    [style]="{ width: '1100px' }"
+    styleClass="custom-dialog"
+>
+    <!-- BARRE DE RECHERCHE -->
+    <div class="payments-search-bar">
+        <span class="p-input-icon-left search-wrap">
+            <i class="pi pi-search"></i>
+            <input
+                pInputText
+                type="text"
+                placeholder="Rechercher par locataire, adresse, mois..."
+                [(ngModel)]="paiementSearch"
+                (input)="onPaiementSearch()"
+                class="search-input"
+            />
+        </span>
+        <p-dropdown
+            [options]="statusOptions"
+            [(ngModel)]="paiementStatusFilter"
+            placeholder="Tous les statuts"
+            optionLabel="label"
+            optionValue="value"
+            [showClear]="true"
+            (onChange)="onPaiementSearch()"
+            styleClass="status-filter-drop"
+        >
+        </p-dropdown>
+    </div>
+
+    <!-- STATS RAPIDES -->
+    <div class="kanban-stats">
+        <div class="stat-pill pill-attente">
+            <i class="pi pi-clock"></i>
+            <span class="stat-count">{{
+                getKanbanCol("en_attente").length
+            }}</span>
+            En attente
+        </div>
+        <div class="stat-pill pill-paye">
+            <i class="pi pi-check-circle"></i>
+            <span class="stat-count">{{ getKanbanCol("paye").length }}</span>
+            Payés
+        </div>
+        <div class="stat-pill pill-retard">
+            <i class="pi pi-exclamation-triangle"></i>
+            <span class="stat-count">{{
+                getKanbanCol("en_retard").length
+            }}</span>
+            En retard
+        </div>
+        <div class="stat-pill pill-annule">
+            <i class="pi pi-times-circle"></i>
+            <span class="stat-count">{{ getKanbanCol("annule").length }}</span>
+            Annulés
+        </div>
+    </div>
+
+    <!-- KANBAN BOARD -->
+    <div class="kanban-board">
+        <!-- COLONNE EN ATTENTE -->
+        <div class="kanban-col col-attente">
+            <div class="col-header">
+                <span><i class="pi pi-clock"></i> En attente</span>
+                <span class="col-badge">{{
+                    getKanbanCol("en_attente").length
+                }}</span>
+            </div>
+            <div class="col-body">
+                <ng-container
+                    *ngIf="
+                        getKanbanCol('en_attente').length > 0;
+                        else emptyAttente
+                    "
+                >
+                    <div
+                        class="payment-card"
+                        *ngFor="let p of getKanbanCol('en_attente')"
+                    >
+                        <!-- Top : locataire -->
+                        <div class="card-top">
+                            <div class="pay-avatar">
+                                {{ (p.contrat?.locataire?.nom || "?")[0]
+                                }}{{ (p.contrat?.locataire?.prenom || "")[0] }}
+                            </div>
+                            <div class="pay-tenant">
+                                <span class="tenant-name"
+                                    >{{ p.contrat?.locataire?.nom }}
+                                    {{ p.contrat?.locataire?.prenom }}</span
+                                >
+                                <span class="tenant-phone"
+                                    ><i class="pi pi-phone"></i>
+                                    {{
+                                        p.contrat?.locataire?.telephone || "—"
+                                    }}</span
+                                >
+                            </div>
+                        </div>
+                        <!-- Adresse -->
+                        <div class="card-address">
+                            <i class="pi pi-home"></i>
+                            <span>{{ p.contrat?.maison?.adresse || "—" }}</span>
+                        </div>
+                        <!-- Date + Montant -->
+                        <div class="card-row">
+                            <span class="card-date">
+                                <i class="pi pi-calendar"></i>
+                                {{
+                                    p.date_normale_de_paiement
+                                        | date: "dd/MM/yyyy"
+                                }}
+                            </span>
+                            <span class="card-amount"
+                                >{{ p.montant | numberSpace
+                                }}<small>FCFA</small></span
+                            >
+                        </div>
+                        <!-- Action -->
+                        <div
+                            class="card-action"
+                            *ngIf="p.contrat?.status === 'en_cours'"
+                        >
+                            <button
+                                pButton
+                                type="button"
+                                label="Marquer comme payé"
+                                icon="pi pi-check"
+                                class="p-button-success"
+                                [loading]="loadingPaymentId === p.id"
+                                [disabled]="isPaiementBloque(p)"
+                                [title]="
+                                    isPaiementBloque(p)
+                                        ? 'Réglez d\'abord les mois précédents'
+                                        : ''
+                                "
+                                (click)="marquerCommePaye(p)"
+                            ></button>
+                            <small
+                                *ngIf="isPaiementBloque(p)"
+                                style="
+                                    display: block;
+                                    margin-top: 5px;
+                                    color: #94a3b8;
+                                    font-size: 0.72rem;
+                                    text-align: center;
+                                "
+                            >
+                                <i class="pi pi-lock"></i> Soldez les mois
+                                précédents d'abord
+                            </small>
+                        </div>
+                    </div>
+                </ng-container>
+                <ng-template #emptyAttente>
+                    <div class="col-empty">
+                        <i class="pi pi-check-circle"></i> Aucun paiement en
+                        attente
+                    </div>
+                </ng-template>
+            </div>
+        </div>
+
+        <!-- COLONNE PAYÉ -->
+        <div class="kanban-col col-paye">
+            <div class="col-header">
+                <span><i class="pi pi-check-circle"></i> Payés</span>
+                <span class="col-badge">{{ getKanbanCol("paye").length }}</span>
+            </div>
+            <div class="col-body">
+                <ng-container
+                    *ngIf="getKanbanCol('paye').length > 0; else emptyPaye"
+                >
+                    <div
+                        class="payment-card"
+                        *ngFor="let p of getKanbanCol('paye')"
+                    >
+                        <div class="card-top">
+                            <div class="pay-avatar">
+                                {{ (p.contrat?.locataire?.nom || "?")[0]
+                                }}{{ (p.contrat?.locataire?.prenom || "")[0] }}
+                            </div>
+                            <div class="pay-tenant">
+                                <span class="tenant-name"
+                                    >{{ p.contrat?.locataire?.nom }}
+                                    {{ p.contrat?.locataire?.prenom }}</span
+                                >
+                                <span class="tenant-phone"
+                                    ><i class="pi pi-phone"></i>
+                                    {{
+                                        p.contrat?.locataire?.telephone || "—"
+                                    }}</span
+                                >
+                            </div>
+                        </div>
+                        <div class="card-address">
+                            <i class="pi pi-home"></i>
+                            <span>{{ p.contrat?.maison?.adresse || "—" }}</span>
+                        </div>
+                        <div class="card-row">
+                            <span class="card-date">
+                                <i class="pi pi-calendar"></i>
+                                {{
+                                    p.date_normale_de_paiement
+                                        | date: "dd/MM/yyyy"
+                                }}
+                            </span>
+                            <span class="card-amount"
+                                >{{ p.montant | numberSpace
+                                }}<small>FCFA</small></span
+                            >
+                        </div>
+                        <div class="card-action">
+                            <button
+                                pButton
+                                type="button"
+                                label="Télécharger facture"
+                                icon="pi pi-file-pdf"
+                                class="p-button-danger"
+                                [loading]="isLoading"
+                                (click)="genererFacture(p)"
+                            ></button>
+                        </div>
+                    </div>
+                </ng-container>
+                <ng-template #emptyPaye>
+                    <div class="col-empty">
+                        <i class="pi pi-inbox"></i> Aucun paiement payé
+                    </div>
+                </ng-template>
+            </div>
+        </div>
+
+        <!-- COLONNE EN RETARD -->
+        <div class="kanban-col col-retard">
+            <div class="col-header">
+                <span
+                    ><i class="pi pi-exclamation-triangle"></i> En retard</span
+                >
+                <span class="col-badge">{{
+                    getKanbanCol("en_retard").length
+                }}</span>
+            </div>
+            <div class="col-body">
+                <ng-container
+                    *ngIf="
+                        getKanbanCol('en_retard').length > 0;
+                        else emptyRetard
+                    "
+                >
+                    <div
+                        class="payment-card"
+                        *ngFor="let p of getKanbanCol('en_retard')"
+                    >
+                        <div class="card-top">
+                            <div
+                                class="pay-avatar"
+                                style="
+                                    background: linear-gradient(
+                                        135deg,
+                                        #ef4444,
+                                        #b91c1c
+                                    );
+                                "
+                            >
+                                {{ (p.contrat?.locataire?.nom || "?")[0]
+                                }}{{ (p.contrat?.locataire?.prenom || "")[0] }}
+                            </div>
+                            <div class="pay-tenant">
+                                <span class="tenant-name"
+                                    >{{ p.contrat?.locataire?.nom }}
+                                    {{ p.contrat?.locataire?.prenom }}</span
+                                >
+                                <span class="tenant-phone"
+                                    ><i class="pi pi-phone"></i>
+                                    {{
+                                        p.contrat?.locataire?.telephone || "—"
+                                    }}</span
+                                >
+                            </div>
+                        </div>
+                        <div class="card-address">
+                            <i class="pi pi-home"></i>
+                            <span>{{ p.contrat?.maison?.adresse || "—" }}</span>
+                        </div>
+                        <div class="card-row">
+                            <span class="card-date" style="color: #b91c1c">
+                                <i class="pi pi-calendar"></i>
+                                {{
+                                    p.date_normale_de_paiement
+                                        | date: "dd/MM/yyyy"
+                                }}
+                            </span>
+                            <span class="card-amount"
+                                >{{ p.montant | numberSpace
+                                }}<small>FCFA</small></span
+                            >
+                        </div>
+                        <div
+                            class="card-action"
+                            *ngIf="p.contrat?.status === 'en_cours'"
+                        >
+                            <button
+                                pButton
+                                type="button"
+                                label="Marquer comme payé"
+                                icon="pi pi-check"
+                                class="p-button-success"
+                                [loading]="loadingPaymentId === p.id"
+                                [disabled]="isPaiementBloque(p)"
+                                [title]="
+                                    isPaiementBloque(p)
+                                        ? 'Réglez d\'abord les mois précédents'
+                                        : ''
+                                "
+                                (click)="marquerCommePaye(p)"
+                            ></button>
+                            <small
+                                *ngIf="isPaiementBloque(p)"
+                                style="
+                                    display: block;
+                                    margin-top: 5px;
+                                    color: #94a3b8;
+                                    font-size: 0.72rem;
+                                    text-align: center;
+                                "
+                            >
+                                <i class="pi pi-lock"></i> Soldez les mois
+                                précédents d'abord
+                            </small>
+                        </div>
+                    </div>
+                </ng-container>
+                <ng-template #emptyRetard>
+                    <div class="col-empty">
+                        <i class="pi pi-check-circle"></i> Aucun retard
+                    </div>
+                </ng-template>
+            </div>
+        </div>
+    </div>
+</p-dialog>

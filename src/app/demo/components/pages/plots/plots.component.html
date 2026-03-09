@@ -1,0 +1,389 @@
+<!-- plots.component.html -->
+<p-toast></p-toast>
+<p-confirmDialog></p-confirmDialog>
+
+<div class="plots-wrapper">
+
+  <!-- ===== PAGE HEADER ===== -->
+  <div class="page-header">
+    <div class="page-header-left">
+      <h1 class="page-title">Parcelles</h1>
+      <p class="page-subtitle">Gestion du patrimoine foncier</p>
+    </div>
+    <button pButton type="button"
+      label="Ajouter une parcelle" icon="pi pi-plus"
+      class="btn-primary" (click)="openPlotModal()">
+    </button>
+  </div>
+
+  <!-- ===== TABLE CARD ===== -->
+  <div class="table-card">
+    <p-table [value]="plots" scrollDirection="both" [scrollable]="true"
+      responsiveLayout="scroll" [paginator]="true"
+      [rowsPerPageOptions]="[10, 20, 50]" [rows]="pageSize"
+      [totalRecords]="totalRecords" styleClass="custom-table">
+      <ng-template pTemplate="header">
+        <tr>
+          <th>Parcelle / Lot</th>
+          <th>Localisation</th>
+          <th>Superficie</th>
+          <th>Montant</th>
+          <th>Statut</th>
+          <th>Date d'achat</th>
+          <th>Décharge</th>
+          <th class="col-actions">Actions</th>
+        </tr>
+      </ng-template>
+      <ng-template pTemplate="body" let-plot>
+        <tr class="table-row">
+          <td>
+            <div class="plot-cell">
+              <span class="plot-num">N° {{ plot.numero_parcelle || '—' }}</span>
+              <span class="plot-lot" *ngIf="plot.lot">Lot {{ plot.lot }}</span>
+            </div>
+          </td>
+          <td>
+            <div class="location-cell" *ngIf="plot.quartier || plot.commune">
+              <i class="pi pi-map-marker"></i>
+              <div>
+                <span class="location-main">{{ plot.quartier }}<span *ngIf="plot.quartier && plot.commune">, </span>{{ plot.commune }}</span>
+                <span class="location-sub">{{ plot.departement }} — {{ plot.pays }}</span>
+              </div>
+            </div>
+            <span *ngIf="!plot.quartier && !plot.commune" class="text-muted">—</span>
+          </td>
+          <td><span class="surface">{{ plot.superficie || '—' }} m²</span></td>
+          <td><span class="price-main">{{ plot.montant_parcelle | numberSpace }} <small>FCFA</small></span></td>
+          <td>
+            <span class="status-badge" [ngClass]="'status-' + plot.status">
+              <span class="status-dot"></span>{{ plot.status || '—' }}
+            </span>
+          </td>
+          <td class="date-cell">{{ plot.date_achat | date:'dd/MM/yyyy' }}</td>
+          <td>
+            <span *ngIf="plot.factureDecharge?.est_signee" class="decharge-badge decharge-signed">
+              <i class="pi pi-check-circle"></i> Signée
+            </span>
+            <span *ngIf="plot.factureDecharge && !plot.factureDecharge.est_signee" class="decharge-badge decharge-pending">
+              <i class="pi pi-clock"></i> En attente
+            </span>
+            <span *ngIf="!plot.factureDecharge" class="text-muted">—</span>
+          </td>
+          <td class="col-actions">
+            <div class="action-btns">
+              <button pButton type="button" title="Voir" icon="pi pi-eye"
+                class="action-btn action-info" (click)="viewsDetails(plot)"></button>
+              <button pButton type="button" title="Modifier" icon="pi pi-pencil"
+                class="action-btn action-edit" (click)="openPlotModal(plot)"></button>
+              <button pButton type="button" title="Supprimer" icon="pi pi-trash"
+                class="action-btn action-danger" (click)="deletePlot(plot)"></button>
+              <button *ngIf="plot.factureDecharge && !plot.factureDecharge.est_signee"
+                pButton type="button" title="Marquer comme signée" icon="pi pi-check"
+                class="action-btn action-success" [loading]="loading"
+                (click)="marquerDechargeCommeSignee(plot.factureDecharge.id)"></button>
+            </div>
+          </td>
+        </tr>
+      </ng-template>
+      <ng-template pTemplate="emptymessage">
+        <tr><td colspan="8"><div class="empty-state"><i class="pi pi-map"></i><p>Aucune parcelle enregistrée</p></div></td></tr>
+      </ng-template>
+    </p-table>
+  </div>
+</div>
+
+<!-- ===== MODAL DÉTAILS ===== -->
+<p-dialog [(visible)]="detailDialog" [style]="{ width: '95rem' }"
+  header="Détails de la parcelle" [modal]="true" [closable]="true"
+  (onHide)="hideDetailDialog()" styleClass="custom-dialog">
+  <div *ngIf="selectedPlotDetails" class="view-layout">
+    <div class="decharge-actions">
+      <button *ngIf="selectedPlotDetails?.status === 'en_attente'"
+        pButton type="button" [loading]="isLoading"
+        label="Générer la décharge" icon="pi pi-file-pdf" class="btn-warning"
+        (click)="genererDecharge(selectedPlotDetails.id)"></button>
+      <button *ngIf="selectedPlotDetails?.status === 'en_cours'"
+        pButton type="button" label="Génération en cours..."
+        icon="pi pi-spin pi-spinner" [disabled]="true" class="btn-info"></button>
+      <button *ngIf="selectedPlotDetails?.status === 'terminee'"
+        pButton type="button" label="Télécharger la décharge"
+        icon="pi pi-download" class="btn-success"
+        (click)="telechargerDecharge(selectedPlotDetails.id)"></button>
+    </div>
+    <div class="view-section">
+      <div class="view-section-title"><i class="pi pi-map"></i> Informations parcelle</div>
+      <div class="view-grid view-grid-4">
+        <div class="view-field"><span class="view-label">N° Parcelle</span><span class="view-value bold">{{ selectedPlotDetails.numero_parcelle || '—' }}</span></div>
+        <div class="view-field"><span class="view-label">Lot</span><span class="view-value">{{ selectedPlotDetails.lot || '—' }}</span></div>
+        <div class="view-field"><span class="view-label">Superficie</span><span class="view-value">{{ selectedPlotDetails.superficie }} m²</span></div>
+        <div class="view-field"><span class="view-label">Montant</span><span class="view-value price-highlight">{{ selectedPlotDetails.montant_parcelle | numberSpace }} FCFA</span></div>
+        <div class="view-field"><span class="view-label">Quartier</span><span class="view-value">{{ selectedPlotDetails.quartier || '—' }}</span></div>
+        <div class="view-field"><span class="view-label">Commune</span><span class="view-value">{{ selectedPlotDetails.commune || '—' }}</span></div>
+        <div class="view-field"><span class="view-label">Département</span><span class="view-value">{{ selectedPlotDetails.departement || '—' }}</span></div>
+        <div class="view-field"><span class="view-label">Région</span><span class="view-value">{{ selectedPlotDetails.region || '—' }}</span></div>
+        <div class="view-field"><span class="view-label">Pays</span><span class="view-value">{{ selectedPlotDetails.pays || '—' }}</span></div>
+        <div class="view-field"><span class="view-label">Situation géo.</span><span class="view-value">{{ selectedPlotDetails.situation_geographique || '—' }}</span></div>
+        <div class="view-field"><span class="view-label">Date d'achat</span><span class="view-value">{{ selectedPlotDetails.date_achat | date:'dd/MM/yyyy' }}</span></div>
+        <div class="view-field"><span class="view-label">GPS</span><span class="view-value">{{ selectedPlotDetails.latitude }}, {{ selectedPlotDetails.longitude }}</span></div>
+      </div>
+    </div>
+    <div class="view-section" *ngIf="selectedPlotDetails.image_parcelle || selectedPlotDetails.image_carte || selectedPlotDetails.image_titre_foncier || selectedPlotDetails.image_plan_cadastral">
+      <div class="view-section-title"><i class="pi pi-images"></i> Documents</div>
+      <div class="images-grid">
+        <div class="image-item" *ngIf="selectedPlotDetails.image_parcelle">
+          <span class="image-label">Image parcelle</span>
+          <img [src]="selectedPlotDetails.image_parcelle" alt="Image parcelle" />
+        </div>
+        <div class="image-item" *ngIf="selectedPlotDetails.image_carte">
+          <span class="image-label">Image carte</span>
+          <img [src]="selectedPlotDetails.image_carte" alt="Image carte" />
+        </div>
+        <div class="image-item" *ngIf="selectedPlotDetails.image_titre_foncier">
+          <span class="image-label">Titre foncier</span>
+          <img [src]="selectedPlotDetails.image_titre_foncier" alt="Titre foncier" />
+        </div>
+        <div class="image-item" *ngIf="selectedPlotDetails.image_plan_cadastral">
+          <span class="image-label">Plan cadastral</span>
+          <img [src]="selectedPlotDetails.image_plan_cadastral" alt="Plan cadastral" />
+        </div>
+      </div>
+    </div>
+  </div>
+  <ng-template pTemplate="footer">
+    <button pButton label="Fermer" icon="pi pi-times" class="btn-cancel" (click)="hideDetailDialog()"></button>
+    <button pButton label="Modifier" icon="pi pi-pencil" class="btn-primary" (click)="hideDetailDialog(); openPlotModal(selectedPlotDetails)"></button>
+  </ng-template>
+</p-dialog>
+
+<!-- ===== MODAL AJOUT / MODIFICATION ===== -->
+<p-dialog [(visible)]="plotDialog" [style]="{ width: '95rem' }"
+  [header]="selectedPlot ? 'Modifier la parcelle' : 'Ajouter une parcelle'"
+  [modal]="true" styleClass="custom-dialog">
+
+  <!-- TABS -->
+  <div class="form-tabs">
+    <div class="form-tab" [ngClass]="{'tab-active': activeTab === 0}" (click)="activeTab = 0"><i class="pi pi-user"></i> Vendeur</div>
+    <div class="form-tab" [ngClass]="{'tab-active': activeTab === 1}" (click)="activeTab = 1"><i class="pi pi-shopping-cart"></i> Acheteur</div>
+    <div class="form-tab" [ngClass]="{'tab-active': activeTab === 2}" (click)="activeTab = 2"><i class="pi pi-users"></i> Témoins</div>
+    <div class="form-tab" [ngClass]="{'tab-active': activeTab === 3}" (click)="activeTab = 3"><i class="pi pi-map"></i> Parcelle</div>
+  </div>
+
+  <form [formGroup]="parcelleForm" class="tab-content">
+
+    <!-- ===== TAB 0 : VENDEUR ===== -->
+    <div *ngIf="activeTab === 0">
+      <div class="form-section-title"><i class="pi pi-user"></i> Informations sur le vendeur</div>
+      <div class="form-grid form-grid-3">
+        <div class="form-field">
+          <label class="form-label required">Nom</label>
+          <input pInputText formControlName="vendeur_nom" placeholder="Nom du vendeur" />
+          <small class="form-error" *ngIf="submitted && parcelleForm.controls['vendeur_nom'].errors">Requis</small>
+        </div>
+        <div class="form-field">
+          <label class="form-label required">Prénom</label>
+          <input pInputText formControlName="vendeur_prenom" placeholder="Prénom du vendeur" />
+        </div>
+        <div class="form-field">
+          <label class="form-label required">Téléphone</label>
+          <input pInputText formControlName="vendeur_telephone" placeholder="+226 XX XX XX XX" />
+        </div>
+        <div class="form-field">
+          <label class="form-label required">Type de pièce</label>
+          <p-dropdown [options]="typeDePieceOptions" formControlName="type_de_piece_vendeur"
+            placeholder="Sélectionner" optionLabel="label" optionValue="value" appendTo="body" styleClass="w-full"></p-dropdown>
+        </div>
+        <div class="form-field">
+          <label class="form-label required">Numéro CNI</label>
+          <input pInputText formControlName="numero_cni_vendeur" placeholder="Numéro CNI" />
+        </div>
+        <div class="form-field">
+          <label class="form-label">Adresse</label>
+          <input pInputText formControlName="vendeur_adresse" placeholder="Adresse" />
+        </div>
+        <div class="form-field">
+          <label class="form-label required">Date création CNI</label>
+          <p-calendar formControlName="date_creation_cni_vendeur" dateFormat="dd/mm/yy" [showIcon]="true" styleClass="w-full"></p-calendar>
+        </div>
+        <div class="form-field">
+          <label class="form-label required">Date expiration CNI</label>
+          <p-calendar formControlName="date_expiration_cni_vendeur" dateFormat="dd/mm/yy" [showIcon]="true" styleClass="w-full"></p-calendar>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== TAB 1 : ACHETEUR ===== -->
+    <div *ngIf="activeTab === 1">
+      <div class="form-section-title"><i class="pi pi-shopping-cart"></i> Informations sur l'acheteur</div>
+      <div class="form-grid form-grid-3">
+        <div class="form-field">
+          <label class="form-label required">Nom</label>
+          <input pInputText formControlName="acheteur_nom" placeholder="Nom de l'acheteur" />
+        </div>
+        <div class="form-field">
+          <label class="form-label required">Prénom</label>
+          <input pInputText formControlName="acheteur_prenom" placeholder="Prénom de l'acheteur" />
+        </div>
+        <div class="form-field">
+          <label class="form-label required">Téléphone</label>
+          <input pInputText formControlName="acheteur_telephone" placeholder="+226 XX XX XX XX" />
+        </div>
+        <div class="form-field">
+          <label class="form-label required">Type de pièce</label>
+          <p-dropdown [options]="typeDePieceOptions" formControlName="type_de_piece_acheteur"
+            placeholder="Sélectionner" optionLabel="label" optionValue="value" appendTo="body" styleClass="w-full"></p-dropdown>
+        </div>
+        <div class="form-field">
+          <label class="form-label required">Numéro CNI</label>
+          <input pInputText formControlName="numero_cni_acheteur" placeholder="Numéro CNI" />
+        </div>
+        <div class="form-field">
+          <label class="form-label">Adresse</label>
+          <input pInputText formControlName="acheteur_adresse" placeholder="Adresse" />
+        </div>
+        <div class="form-field">
+          <label class="form-label required">Date création CNI</label>
+          <p-calendar formControlName="date_creation_cni_acheteur" dateFormat="dd/mm/yy" [showIcon]="true" styleClass="w-full"></p-calendar>
+        </div>
+        <div class="form-field">
+          <label class="form-label required">Date expiration CNI</label>
+          <p-calendar formControlName="date_expiration_cni_acheteur" dateFormat="dd/mm/yy" [showIcon]="true" styleClass="w-full"></p-calendar>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== TAB 2 : TÉMOINS ===== -->
+    <div *ngIf="activeTab === 2">
+
+      <!-- Témoin 1 -->
+      <div class="form-section-title"><i class="pi pi-user"></i> Témoin 1 <span class="required-mark">*</span></div>
+      <div class="form-grid form-grid-3">
+        <div class="form-field"><label class="form-label required">Nom</label><input pInputText formControlName="temoin_nom_1" /></div>
+        <div class="form-field"><label class="form-label required">Prénom</label><input pInputText formControlName="temoin_prenom_1" /></div>
+        <div class="form-field"><label class="form-label required">Téléphone</label><input pInputText formControlName="temoin_telephone_1" /></div>
+        <div class="form-field">
+          <label class="form-label">Type de pièce</label>
+          <p-dropdown [options]="typeDePieceOptions" formControlName="type_de_piece_temoin_1" placeholder="Sélectionner" optionLabel="label" optionValue="value" appendTo="body" styleClass="w-full"></p-dropdown>
+        </div>
+        <div class="form-field"><label class="form-label">Numéro CNI</label><input pInputText formControlName="numero_cni_temoin_1" /></div>
+        <div class="form-field"><label class="form-label">Adresse</label><input pInputText formControlName="temoin_adresse_1" /></div>
+        <div class="form-field"><label class="form-label">Date création CNI</label><p-calendar formControlName="date_creation_cni_temoin_1" dateFormat="dd/mm/yy" [showIcon]="true" styleClass="w-full"></p-calendar></div>
+        <div class="form-field"><label class="form-label">Date expiration CNI</label><p-calendar formControlName="date_expiration_cni_temoin_1" dateFormat="dd/mm/yy" [showIcon]="true" styleClass="w-full"></p-calendar></div>
+      </div>
+
+      <!-- Témoin 2 -->
+      <div class="form-section-title mt16"><i class="pi pi-user"></i> Témoin 2 <span class="required-mark">*</span></div>
+      <div class="form-grid form-grid-3">
+        <div class="form-field"><label class="form-label required">Nom</label><input pInputText formControlName="temoin_nom_2" /></div>
+        <div class="form-field"><label class="form-label required">Prénom</label><input pInputText formControlName="temoin_prenom_2" /></div>
+        <div class="form-field"><label class="form-label required">Téléphone</label><input pInputText formControlName="temoin_telephone_2" /></div>
+        <div class="form-field">
+          <label class="form-label">Type de pièce</label>
+          <p-dropdown [options]="typeDePieceOptions" formControlName="type_de_piece_temoin_2" placeholder="Sélectionner" optionLabel="label" optionValue="value" appendTo="body" styleClass="w-full"></p-dropdown>
+        </div>
+        <div class="form-field"><label class="form-label">Numéro CNI</label><input pInputText formControlName="numero_cni_temoin_2" /></div>
+        <div class="form-field"><label class="form-label">Adresse</label><input pInputText formControlName="temoin_adresse_2" /></div>
+        <div class="form-field"><label class="form-label">Date création CNI</label><p-calendar formControlName="date_creation_cni_temoin_2" dateFormat="dd/mm/yy" [showIcon]="true" styleClass="w-full"></p-calendar></div>
+        <div class="form-field"><label class="form-label">Date expiration CNI</label><p-calendar formControlName="date_expiration_cni_temoin_2" dateFormat="dd/mm/yy" [showIcon]="true" styleClass="w-full"></p-calendar></div>
+      </div>
+
+      <!-- Témoin 3 (optionnel) -->
+      <div class="form-section-title mt16"><i class="pi pi-user"></i> Témoin 3 <span class="optional-tag">Optionnel</span></div>
+      <div class="form-grid form-grid-3">
+        <div class="form-field"><label class="form-label">Nom</label><input pInputText formControlName="temoin_nom_3" /></div>
+        <div class="form-field"><label class="form-label">Prénom</label><input pInputText formControlName="temoin_prenom_3" /></div>
+        <div class="form-field"><label class="form-label">Téléphone</label><input pInputText formControlName="temoin_telephone_3" /></div>
+        <div class="form-field">
+          <label class="form-label">Type de pièce</label>
+          <p-dropdown [options]="typeDePieceOptions" formControlName="type_de_piece_temoin_3" placeholder="Sélectionner" optionLabel="label" optionValue="value" appendTo="body" styleClass="w-full"></p-dropdown>
+        </div>
+        <div class="form-field"><label class="form-label">Numéro CNI</label><input pInputText formControlName="numero_cni_temoin_3" /></div>
+        <div class="form-field"><label class="form-label">Adresse</label><input pInputText formControlName="temoin_adresse_3" /></div>
+        <div class="form-field"><label class="form-label">Date création CNI</label><p-calendar formControlName="date_creation_cni_temoin_3" dateFormat="dd/mm/yy" [showIcon]="true" styleClass="w-full"></p-calendar></div>
+        <div class="form-field"><label class="form-label">Date expiration CNI</label><p-calendar formControlName="date_expiration_cni_temoin_3" dateFormat="dd/mm/yy" [showIcon]="true" styleClass="w-full"></p-calendar></div>
+      </div>
+    </div>
+
+    <!-- ===== TAB 3 : PARCELLE ===== -->
+    <div *ngIf="activeTab === 3">
+      <div class="form-section-title"><i class="pi pi-map"></i> Identification</div>
+      <div class="form-grid form-grid-3">
+        <div class="form-field">
+          <label class="form-label required">N° Parcelle</label>
+          <input pInputText formControlName="numero_parcelle" placeholder="Ex: 125" />
+        </div>
+        <div class="form-field">
+          <label class="form-label required">Lot</label>
+          <input pInputText formControlName="lot" placeholder="Ex: 12" />
+        </div>
+        <div class="form-field">
+          <label class="form-label required">Superficie (m²)</label>
+          <input pInputText formControlName="superficie" placeholder="Ex: 300" />
+        </div>
+        <div class="form-field">
+          <label class="form-label required">Type de parcelle</label>
+          <p-dropdown [options]="typeParcelleOptions" formControlName="type_parcelle" placeholder="Sélectionner" optionLabel="label" optionValue="value" appendTo="body" styleClass="w-full"></p-dropdown>
+        </div>
+        <div class="form-field">
+          <label class="form-label">Usage prévu</label>
+          <p-dropdown [options]="usageParcelleOptions" formControlName="usage_prevu" placeholder="Sélectionner" optionLabel="label" optionValue="value" appendTo="body" styleClass="w-full"></p-dropdown>
+        </div>
+        <div class="form-field">
+          <label class="form-label required">Date d'achat</label>
+          <p-calendar formControlName="date_achat" [showIcon]="true" dateFormat="dd/mm/yy" styleClass="w-full"></p-calendar>
+        </div>
+      </div>
+
+      <div class="form-section-title mt16"><i class="pi pi-wallet"></i> Finances</div>
+      <div class="form-grid form-grid-3">
+        <div class="form-field">
+          <label class="form-label required">Montant (FCFA)</label>
+          <p-inputNumber formControlName="montant_parcelle" mode="currency" currency="XOF" locale="fr-SN" styleClass="w-full"></p-inputNumber>
+        </div>
+        <div class="form-field">
+          <label class="form-label">Montant en lettres</label>
+          <input pInputText formControlName="montant_parcelle_en_lettre" [readonly]="true" class="input-computed" />
+        </div>
+        <div class="form-field">
+          <label class="form-label">Mode de paiement</label>
+          <input pInputText formControlName="mode_paiement" placeholder="Ex: Virement, Espèces..." />
+        </div>
+      </div>
+
+      <div class="form-section-title mt16"><i class="pi pi-map-marker"></i> Localisation</div>
+      <div class="form-grid form-grid-3">
+        <div class="form-field col-span-2">
+          <label class="form-label required">Situation géographique</label>
+          <input pInputText formControlName="situation_geographique" placeholder="Description de la situation" />
+        </div>
+        <div class="form-field"><label class="form-label required">Quartier</label><input pInputText formControlName="quartier" /></div>
+        <div class="form-field"><label class="form-label required">Commune</label><input pInputText formControlName="commune" /></div>
+        <div class="form-field"><label class="form-label required">Département</label><input pInputText formControlName="departement" /></div>
+        <div class="form-field"><label class="form-label required">Région</label><input pInputText formControlName="region" /></div>
+        <div class="form-field">
+          <label class="form-label">Pays</label>
+          <p-dropdown [options]="paysOptions" formControlName="pays" placeholder="Sélectionner" optionLabel="label" optionValue="value" appendTo="body" styleClass="w-full"></p-dropdown>
+        </div>
+        <div class="form-field"><label class="form-label">Latitude</label><input pInputText formControlName="latitude" placeholder="Ex: 12.3456" /></div>
+        <div class="form-field"><label class="form-label">Longitude</label><input pInputText formControlName="longitude" placeholder="Ex: -1.2345" /></div>
+      </div>
+
+      <div class="form-field mt16">
+        <label class="form-label">Description</label>
+        <textarea pInputTextarea formControlName="description_parcelle" [rows]="3" placeholder="Description de la parcelle..."></textarea>
+      </div>
+    </div>
+
+    <!-- NAV BUTTONS -->
+    <div class="tab-nav">
+      <button pButton type="button" label="Précédent" icon="pi pi-arrow-left"
+        class="btn-cancel" *ngIf="activeTab > 0" (click)="activeTab = activeTab - 1"></button>
+      <button pButton type="button" label="Annuler" icon="pi pi-times"
+        class="btn-cancel" (click)="hideDialog()"></button>
+      <button pButton type="button" label="Suivant" icon="pi pi-arrow-right" iconPos="right"
+        class="btn-primary" *ngIf="activeTab < 3" (click)="activeTab = activeTab + 1"></button>
+      <button *ngIf="activeTab === 3" pButton type="button"
+        label="Enregistrer" icon="pi pi-check" class="btn-primary" (click)="savePlot()"></button>
+    </div>
+
+  </form>
+</p-dialog>

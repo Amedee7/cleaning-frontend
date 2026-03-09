@@ -1,0 +1,270 @@
+<p-toast></p-toast>
+<p-confirmDialog></p-confirmDialog>
+
+<div class="owners-wrapper">
+
+  <!-- ===== PAGE HEADER ===== -->
+  <div class="page-header">
+    <div class="page-header-left">
+      <h1 class="page-title">Propriétaires</h1>
+      <p class="page-subtitle">Gestion des propriétaires</p>
+    </div>
+    <div class="page-header-actions">
+      <div class="search-wrap">
+        <i class="pi pi-search search-icon"></i>
+        <input pInputText type="text" class="search-input"
+          (input)="searchOwners($event)" placeholder="Rechercher un propriétaire..." />
+      </div>
+      <button pButton type="button"
+        label="Ajouter un propriétaire"
+        icon="pi pi-plus"
+        class="btn-primary"
+        (click)="openOwnerModal()">
+      </button>
+    </div>
+  </div>
+
+  <!-- ===== TABLE CARD ===== -->
+  <div class="table-card">
+    <p-table
+      [value]="owners"
+      scrollDirection="both"
+      [scrollable]="true"
+      responsiveLayout="scroll"
+      [paginator]="true"
+      [rowsPerPageOptions]="[10, 20, 50]"
+      [rows]="pageSize"
+      [totalRecords]="totalRecords"
+      styleClass="custom-table"
+    >
+      <ng-template pTemplate="header">
+        <tr>
+          <th>Propriétaire</th>
+          <th>Contact</th>
+          <th>Localisation</th>
+          <th>CNI</th>
+          <th>Profession</th>
+          <th>Créé le</th>
+          <th class="col-actions">Actions</th>
+        </tr>
+      </ng-template>
+
+      <ng-template pTemplate="body" let-owner>
+        <tr class="table-row">
+          <td>
+            <div class="owner-cell">
+              <div class="owner-avatar" [ngClass]="owner.sexe === 'F' ? 'avatar-female' : 'avatar-male'">
+                {{ (owner.nom || '?')[0] }}{{ (owner.prenom || '')[0] }}
+              </div>
+              <div class="owner-info">
+                <span class="owner-name">{{ owner.nom }} {{ owner.prenom }}</span>
+                <span class="owner-gender">{{ owner.sexe === 'H' ? 'Homme' : owner.sexe === 'F' ? 'Femme' : '—' }}</span>
+              </div>
+            </div>
+          </td>
+          <td>
+            <div class="contact-cell">
+              <span class="contact-phone"><i class="pi pi-phone"></i> {{ owner.telephone || '—' }}</span>
+              <span class="contact-email" *ngIf="owner.email"><i class="pi pi-envelope"></i> {{ owner.email }}</span>
+            </div>
+          </td>
+          <td>
+            <div class="location-cell" *ngIf="owner.ville || owner.quartier">
+              <i class="pi pi-map-marker"></i>
+              <div>
+                <span class="location-main">{{ owner.quartier }}<span *ngIf="owner.quartier && owner.ville">, </span>{{ owner.ville }}</span>
+                <span class="location-sub">{{ owner.pays }}</span>
+              </div>
+            </div>
+            <span *ngIf="!owner.ville && !owner.quartier" class="text-muted">—</span>
+          </td>
+          <td>
+            <span class="cni-badge" *ngIf="owner.numero_cni">{{ owner.numero_cni }}</span>
+            <span *ngIf="!owner.numero_cni" class="text-muted">—</span>
+          </td>
+          <td>
+            <span class="profession-tag" *ngIf="owner.profession">{{ owner.profession }}</span>
+            <span *ngIf="!owner.profession" class="text-muted">—</span>
+          </td>
+          <td class="date-cell">{{ owner.created_at | date:'dd/MM/yyyy' }}</td>
+          <td class="col-actions">
+            <div class="action-btns">
+              <button pButton type="button" title="Voir détails"
+                icon="pi pi-eye" class="action-btn action-info"
+                (click)="openOwnerModal(owner, true)">
+              </button>
+              <button pButton type="button" title="Modifier"
+                icon="pi pi-pencil" class="action-btn action-edit"
+                (click)="openOwnerModal(owner)">
+              </button>
+              <button pButton type="button" title="Supprimer"
+                icon="pi pi-trash" class="action-btn action-danger"
+                (click)="deleteOwner(owner.id)">
+              </button>
+            </div>
+          </td>
+        </tr>
+      </ng-template>
+
+      <ng-template pTemplate="emptymessage">
+        <tr>
+          <td colspan="7">
+            <div class="empty-state">
+              <i class="pi pi-users"></i>
+              <p>Aucun propriétaire enregistré</p>
+            </div>
+          </td>
+        </tr>
+      </ng-template>
+    </p-table>
+  </div>
+</div>
+
+<!-- ===== MODAL AJOUT / MODIFICATION / VUE ===== -->
+<p-dialog
+  [header]="isViewMode ? 'Détails du propriétaire' : (isEditing ? 'Modifier le propriétaire' : 'Ajouter un propriétaire')"
+  [(visible)]="displayDialog"
+  [modal]="true"
+  [closable]="true"
+  [style]="{ width: '800px' }"
+  (onHide)="selectedOwner = null"
+  styleClass="custom-dialog"
+>
+  <form class="dialog-form" *ngIf="ownerForm">
+
+    <!-- IDENTITÉ -->
+    <div class="form-section-title"><i class="pi pi-user"></i> Identité</div>
+    <div class="form-grid form-grid-3">
+      <div class="form-field">
+        <label class="form-label">Nom</label>
+        <input type="text" pInputText [(ngModel)]="ownerForm.nom" name="nom"
+          [disabled]="isViewMode" placeholder="Nom de famille" />
+      </div>
+      <div class="form-field">
+        <label class="form-label">Prénom</label>
+        <input type="text" pInputText [(ngModel)]="ownerForm.prenom" name="prenom"
+          [disabled]="isViewMode" placeholder="Prénom" />
+      </div>
+      <div class="form-field">
+        <label class="form-label">Sexe</label>
+        <p-dropdown
+          [options]="[{ label: 'Homme', value: 'H' }, { label: 'Femme', value: 'F' }]"
+          [(ngModel)]="ownerForm.sexe" name="sexe"
+          [disabled]="isViewMode" placeholder="Sélectionner"
+          styleClass="w-full">
+        </p-dropdown>
+      </div>
+      <div class="form-field">
+        <label class="form-label">Nationalité</label>
+        <input type="text" pInputText [(ngModel)]="ownerForm.nationalite" name="nationalite"
+          [disabled]="isViewMode" placeholder="Ex: Burkinabè" />
+      </div>
+      <div class="form-field">
+        <label class="form-label">Profession</label>
+        <input type="text" pInputText [(ngModel)]="ownerForm.profession" name="profession"
+          [disabled]="isViewMode" placeholder="Ex: Commerçant" />
+      </div>
+    </div>
+
+    <!-- CONTACT -->
+    <div class="form-section-title"><i class="pi pi-phone"></i> Contact</div>
+    <div class="form-grid">
+      <div class="form-field">
+        <label class="form-label">Téléphone</label>
+        <input type="text" pInputText [(ngModel)]="ownerForm.telephone" name="telephone"
+          [disabled]="isViewMode" placeholder="Ex: +226 XX XX XX XX" />
+      </div>
+      <div class="form-field">
+        <label class="form-label">Email</label>
+        <input type="email" pInputText [(ngModel)]="ownerForm.email" name="email"
+          [disabled]="isViewMode" placeholder="exemple@mail.com" />
+      </div>
+    </div>
+
+    <!-- ADRESSE -->
+    <div class="form-section-title"><i class="pi pi-map-marker"></i> Adresse</div>
+    <div class="form-grid form-grid-3">
+      <div class="form-field col-span-2">
+        <label class="form-label">Adresse</label>
+        <input type="text" pInputText [(ngModel)]="ownerForm.adresse" name="adresse"
+          [disabled]="isViewMode" placeholder="Adresse complète" />
+      </div>
+      <div class="form-field">
+        <label class="form-label">Quartier</label>
+        <input type="text" pInputText [(ngModel)]="ownerForm.quartier" name="quartier"
+          [disabled]="isViewMode" placeholder="Quartier" />
+      </div>
+      <div class="form-field">
+        <label class="form-label">Ville</label>
+        <input type="text" pInputText [(ngModel)]="ownerForm.ville" name="ville"
+          [disabled]="isViewMode" placeholder="Ville" />
+      </div>
+      <div class="form-field">
+        <label class="form-label">Pays</label>
+        <input type="text" pInputText [(ngModel)]="ownerForm.pays" name="pays"
+          [disabled]="isViewMode" placeholder="Pays" />
+      </div>
+    </div>
+
+    <!-- CNI -->
+    <div class="form-section-title"><i class="pi pi-id-card"></i> Pièce d'identité</div>
+    <div class="form-grid form-grid-3">
+      <div class="form-field col-span-2">
+        <label class="form-label">Numéro CNI</label>
+        <input type="text" pInputText [(ngModel)]="ownerForm.numero_cni" name="numero_cni"
+          [disabled]="isViewMode" placeholder="Numéro de la CNI" />
+      </div>
+      <div class="form-field">
+        <label class="form-label">Date de création</label>
+        <p-calendar [(ngModel)]="ownerForm.date_creation_cni" name="date_creation_cni"
+          dateFormat="dd/mm/yy" [disabled]="isViewMode" styleClass="w-full">
+        </p-calendar>
+      </div>
+      <div class="form-field">
+        <label class="form-label">Date d'expiration</label>
+        <p-calendar [(ngModel)]="ownerForm.date_expiration_cni" name="date_expiration_cni"
+          dateFormat="dd/mm/yy" [disabled]="isViewMode" styleClass="w-full">
+        </p-calendar>
+      </div>
+    </div>
+
+    <!-- AUTRES -->
+    <div class="form-section-title"><i class="pi pi-info-circle"></i> Autres informations</div>
+    <div class="form-grid">
+      <div class="form-field">
+        <label class="form-label">Description</label>
+        <textarea pInputTextarea rows="3" [(ngModel)]="ownerForm.description"
+          name="description" [disabled]="isViewMode"
+          placeholder="Notes sur le propriétaire..."></textarea>
+      </div>
+      <div class="form-field">
+        <label class="form-label">Photo</label>
+        <div class="file-upload-zone" *ngIf="!isViewMode">
+          <i class="pi pi-cloud-upload"></i>
+          <span>Photo du propriétaire</span>
+          <label class="file-upload-btn">
+            Parcourir
+            <input type="file" accept="image/*" name="photos" hidden />
+          </label>
+        </div>
+        <span *ngIf="isViewMode" class="text-muted">—</span>
+      </div>
+    </div>
+
+  </form>
+
+  <ng-template pTemplate="footer">
+    <button *ngIf="!isViewMode" pButton label="Annuler" icon="pi pi-times"
+      class="btn-cancel" (click)="displayDialog = false">
+    </button>
+    <button *ngIf="!isViewMode" pButton label="Enregistrer" icon="pi pi-check"
+      class="btn-primary" (click)="saveOwner()">
+    </button>
+    <button *ngIf="isViewMode" pButton label="Fermer" icon="pi pi-times"
+      class="btn-cancel" (click)="displayDialog = false">
+    </button>
+    <button *ngIf="isViewMode" pButton label="Modifier" icon="pi pi-pencil"
+      class="btn-primary" (click)="openOwnerModal(selectedOwner)">
+    </button>
+  </ng-template>
+</p-dialog>

@@ -1,0 +1,185 @@
+<div class="col-12">
+    <p-toast></p-toast>
+    <p-confirmDialog></p-confirmDialog>
+
+    <p-fieldset [toggleable]="true" legend="Gestion des utilisateurs">
+        <div class="card">
+            <div class="flex justify-content-between align-items-center mb-3">
+                <h5>Gestions des Utilisateurs</h5>
+                <div class="flex justify-content-end">
+                <span class="p-input-icon-left">
+                    <i class="pi pi-search"></i>
+                    <input
+                        pInputText
+                        type="text"
+
+                        placeholder="Rechercher"
+                    />
+                </span>
+                </div>
+
+                <button
+                    pButton
+                    type="button"
+                    label="Ajouter un Utilisateur"
+                    icon="pi pi-plus"
+                    class="p-button-success"
+
+                ></button>
+            </div>
+            <p-table
+                [value]="users"
+                scrollDirection="both"
+                [scrollable]="true"
+                styleClass="mt-3"
+                responsiveLayout="scroll"
+                [paginator]="true"
+                [rowsPerPageOptions]="[10, 20, 50]"
+                [rows]="pageSize"
+                [totalRecords]="totalRecords"
+            >
+                <ng-template pTemplate="header">
+                    <tr>
+                        <th>Nom et prénom</th>
+                        <th>Email</th>
+                        <th>Telephone</th>
+                        <th>Profil</th>
+                        <th>Date de création</th>
+                        <th>Actions</th>
+                    </tr>
+                </ng-template>
+                <ng-template pTemplate="body" let-user>
+                    <tr>
+                        <td style="width: 200px">
+                        <span class="font-bold"
+                        >{{ user.firstname }} {{ user.lastname }}</span
+                        >
+                        </td>
+                        <td style="width: 200px">{{ user.email }}</td>
+                        <td style="width: 200px">{{ user.telephone }}</td>
+                        <td style="width: 200px">
+                            <ng-container *ngFor="let role of user.roles; let i = index">
+                                {{ role.display_name }}<span *ngIf="i < user.roles.length - 1">, </span>
+                            </ng-container>
+                        </td>
+                        <td style="width: 200px">
+                            {{ user.created_at | date : "medium" }}
+                        </td>
+
+                        <td style="width: 200px">
+                            <button
+                                pButton
+                                type="button"
+                                title="Voir le propriétaire"
+                                icon="pi pi-eye"
+                                class="p-button-rounded p-button-text p-button-info"
+
+                            ></button>
+
+                            <button
+                                pButton
+                                type="button"
+                                title="Modifier"
+                                icon="pi pi-pencil"
+                                class="p-button-rounded p-button-text p-button-warning"
+
+                            ></button>
+                            <button
+                                pButton
+                                type="button"
+                                title="Supprimer"
+                                icon="pi pi-trash"
+                                class="p-button-rounded p-button-text p-button-danger"
+
+                            ></button>
+                        </td>
+                    </tr>
+                </ng-template>
+            </p-table>
+        </div>
+    </p-fieldset>
+
+    <p-fieldset [toggleable]="true" legend="Gestion des rôles">
+        <div class="card">
+            <h5>Gestions des Rôles</h5>
+        </div>
+
+        <p-table
+                [value]="roles"
+                scrollDirection="both"
+                [scrollable]="true"
+                styleClass="mt-3"
+                responsiveLayout="scroll"
+                [paginator]="true"
+                [rowsPerPageOptions]="[10, 20, 50]"
+                [rows]="pageSize"
+                [totalRecords]="totalRecords"
+        >
+            <ng-template pTemplate="header">
+                <tr>
+                    <th>Nom</th>
+                    <th>Description</th>
+                    <th>Permissions</th>
+                    <th>Actions</th>
+                </tr>
+            </ng-template>
+
+            <ng-template pTemplate="body" let-role>
+                <tr>
+                    <td>{{ role.display_name }}</td>
+                    <td>{{ role.description }}</td>
+                    <td>{{ role.permissions.length }}</td>
+                    <td>
+                        <button
+                            pButton
+                            type="button"
+                            title="Voir le rôle"
+                            icon="pi pi-eye"
+                            (click)="viewRole(role)"
+                            class="p-button-info p-button-sm p-button-rounded p-button-raised mr-1"
+                        ></button>
+                        <button
+                            pButton
+                            type="button"
+                            title="Modifier"
+                            icon="pi pi-pencil"
+                            class="p-button-warning p-button-sm p-button-rounded p-button-raised mr-1"
+                        ></button>
+                        <button
+                            pButton
+                            type="button"
+                            title="Supprimer"
+                            icon="pi pi-trash"
+                            class="p-button-danger p-button-sm p-button-rounded p-button-raised mr-1"
+                        ></button>
+                    </td>
+                </tr>
+
+            </ng-template>
+            <ng-template pTemplate="empty">
+                <div class="flex justify-content-center">
+                    <p>Aucun rôle trouvé</p>
+                </div>
+            </ng-template>
+        </p-table>
+
+        <p-dialog header="Voir le rôle" [(visible)]="visible" [modal]="true" [draggable]="false" [resizable]="false" [closable]="true">
+            <ng-container *ngIf="selectedRole">
+                <h3>{{ selectedRole.display_name }}</h3>
+                <p>{{ selectedRole.description }}</p>
+
+                <div *ngFor="let permission of allPermissions" class="p-field-checkbox">
+                    <p-checkbox
+                        [value]="permission.id"
+                        [label]="permission.display_name"
+                        [(ngModel)]="checkedPermissions"
+                        [inputId]="'permission_' + permission.id"
+                    ></p-checkbox>
+                </div>
+            </ng-container>
+            <ng-template *ngIf="!selectedRole">
+                <p>Chargement des détails du rôle...</p>
+            </ng-template>
+        </p-dialog>    </p-fieldset>
+
+</div>

@@ -1,0 +1,30 @@
+<button class="layout-config-button p-link" type="button" (click)="onConfigButtonClick()">
+    <i class="pi pi-cog"></i>
+</button>
+
+<p-sidebar [(visible)]="visible" position="right" [transitionOptions]="'.3s cubic-bezier(0, 0, 0.2, 1)'" styleClass="layout-config-sidebar w-20rem">
+    <h5>Changer la taille de la police (Agrandir ou réduire)</h5>
+    <div class="flex align-items-center">
+        <button icon="pi pi-minus" type="button" pButton (click)="decrementScale()" class="p-button-text p-button-rounded w-2rem h-2rem mr-2" [disabled]="scale === scales[0]"></button>
+        <div class="flex gap-2 align-items-center">
+            <i class="pi pi-circle-fill text-300" *ngFor="let s of scales" [ngClass]="{'text-primary-500': s === scale}"></i>
+        </div>
+        <button icon="pi pi-plus"  type="button" pButton (click)="incrementScale()" class="p-button-text p-button-rounded w-2rem h-2rem ml-2" [disabled]="scale === scales[scales.length - 1]"></button>
+    </div>
+
+
+
+    <h5>Changer le thème</h5>
+    <div class="grid">
+        <div class="col-3">
+            <button class="p-link w-2rem h-2rem" (click)="changeTheme('bootstrap4-light-blue', 'light')">
+                <img src="assets/layout/images/themes/bootstrap4-light-blue.svg" class="w-2rem h-2rem" alt="Bootstrap Light Blue">
+            </button>
+        </div>
+        <div class="col-3">
+            <button class="p-link w-2rem h-2rem" (click)="changeTheme('bootstrap4-dark-purple', 'dark')">
+                <img src="assets/layout/images/themes/bootstrap4-dark-purple.svg" class="w-2rem h-2rem" alt="Bootstrap Dark Purple">
+            </button>
+        </div>
+    </div>
+</p-sidebar>
