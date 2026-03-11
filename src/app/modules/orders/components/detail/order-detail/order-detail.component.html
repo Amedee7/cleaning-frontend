@@ -1,0 +1,258 @@
+<div class="page" *ngIf="order(); else loading">
+    <!-- Header -->
+    <div class="page-header">
+        <div class="header-left">
+            <a routerLink="/orders" class="back-link">← Commandes</a>
+            <div class="header-title">
+                <h1>{{ order()!.receipt_number }}</h1>
+                <span class="status-badge" [ngClass]="'status-' + order()!.status">
+          {{ statusLabel(order()!.status) }}
+        </span>
+                <span class="late-badge" *ngIf="isLate()">⚠️ En retard</span>
+            </div>
+        </div>
+        <div class="header-actions">
+            <!-- Changement de statut rapide -->
+            <div class="status-actions">
+                <button *ngIf="order()!.status === 'pending'"
+                        class="btn-status processing"
+                        (click)="setStatus('processing')">
+                    ▶ Mettre en traitement
+                </button>
+                <button *ngIf="order()!.status === 'processing'"
+                        class="btn-status ready"
+                        (click)="setStatus('ready')">
+                    ✓ Marquer prête
+                </button>
+                <button *ngIf="order()!.status === 'ready'"
+                        class="btn-status delivered"
+                        (click)="setStatus('delivered')">
+                    📦 Marquer livrée
+                </button>
+                <button *ngIf="!['delivered','cancelled'].includes(order()!.status)"
+                        class="btn-status cancel"
+                        (click)="setStatus('cancelled')">
+                    ✕ Annuler
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="detail-layout">
+        <!-- Colonne principale -->
+        <div class="main-col">
+
+            <!-- Infos commande -->
+            <div class="detail-card">
+                <h3>📋 Informations</h3>
+                <div class="info-grid">
+                    <div class="info-item">
+                        <span class="info-label">Client</span>
+                        <span class="info-value strong">{{ order()!.client_display_name }}</span>
+                    </div>
+                    <div class="info-item" *ngIf="order()!.client_phone">
+                        <span class="info-label">Téléphone</span>
+                        <span class="info-value">
+              <a [href]="'tel:' + order()!.client_phone" class="phone-link">
+                {{ order()!.client_phone }}
+              </a>
+            </span>
+                    </div>
+                    <div class="info-item" *ngIf="order()!.reference">
+                        <span class="info-label">Référence</span>
+                        <span class="info-value ref">📌 {{ order()!.reference }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Réceptionné le</span>
+                        <span class="info-value">{{ order()!.received_at | date:'dd/MM/yyyy à HH:mm' }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Retour prévu</span>
+                        <span class="info-value" [class.late-text]="isLate()">
+              {{ order()!.promised_at | date:'dd/MM/yyyy à HH:mm' }}
+                            <span *ngIf="isLate()"> ⚠️</span>
+            </span>
+                    </div>
+                    <div class="info-item" *ngIf="order()!.ready_at">
+                        <span class="info-label">Prête le</span>
+                        <span class="info-value green">{{ order()!.ready_at | date:'dd/MM/yyyy à HH:mm' }}</span>
+                    </div>
+                    <div class="info-item" *ngIf="order()!.delivered_at">
+                        <span class="info-label">Livrée le</span>
+                        <span class="info-value green">{{ order()!.delivered_at | date:'dd/MM/yyyy à HH:mm' }}</span>
+                    </div>
+                    <div class="info-item" *ngIf="order()!.notes">
+                        <span class="info-label">Notes</span>
+                        <span class="info-value note">{{ order()!.notes }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Articles -->
+            <div class="detail-card">
+                <h3>👔 Articles ({{ order()!.items?.length || 0 }})</h3>
+                <div class="items-list">
+                    <div class="item-row" *ngFor="let item of order()!.items">
+                        <div class="item-main">
+                            <div class="item-name">{{ item.article?.name }}</div>
+                            <div class="item-meta">
+                                <span class="svc-tag">{{ item.service_label }}</span>
+                                <span class="item-code" *ngIf="item.sticker_code">{{ item.sticker_code }}</span>
+                            </div>
+                            <div class="item-notes" *ngIf="item.condition_notes">⚠️ {{ item.condition_notes }}</div>
+                        </div>
+                        <div class="item-right">
+                            <div class="item-qty">× {{ item.quantity }}</div>
+                            <div class="item-price">{{ +item.unit_price | number:'1.0-0' }}</div>
+                            <div class="item-total">{{ +item.total | number:'1.0-0' }} FCFA</div>
+                            <span class="sticker-status" [class.printed]="item.sticker_printed">
+                {{ item.sticker_printed ? '🏷️ Imprimé' : '🏷️ Non imprimé' }}
+              </span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Totaux -->
+                <div class="totals-block">
+                    <div class="total-row">
+                        <span>Sous-total</span>
+                        <span>{{ +order()!.subtotal | number:'1.0-0' }} FCFA</span>
+                    </div>
+                    <div class="total-row discount" *ngIf="+order()!.discount_amount > 0">
+                        <span>Remise</span>
+                        <span>−{{ +order()!.discount_amount | number:'1.0-0' }} FCFA</span>
+                    </div>
+                    <div class="total-row">
+                        <span>TVA ({{ order()!.tax_rate }}%)</span>
+                        <span>{{ +order()!.tax_amount | number:'1.0-0' }} FCFA</span>
+                    </div>
+                    <div class="total-row grand">
+                        <span>TOTAL</span>
+                        <span>{{ +order()!.total | number:'1.0-0' }} FCFA</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Paiements -->
+            <div class="detail-card">
+                <div class="card-header-row">
+                    <h3>💳 Paiements</h3>
+                    <div class="payment-summary">
+            <span class="pay-badge" [ngClass]="'pay-' + order()!.payment_status">
+              {{ paymentLabel(order()!.payment_status) }}
+            </span>
+                    </div>
+                </div>
+
+                <!-- Historique paiements -->
+                <div class="payment-list" *ngIf="order()!.payments?.length">
+                    <div class="payment-row" *ngFor="let p of order()!.payments">
+                        <div class="pay-icon">{{ methodIcon(p.method) }}</div>
+                        <div class="pay-info">
+                            <div class="pay-number">{{ p.payment_number }}</div>
+                            <div class="pay-method">{{ methodLabel(p.method) }}</div>
+                        </div>
+                        <div class="pay-date">{{ p.paid_at | date:'dd/MM HH:mm' }}</div>
+                        <div class="pay-amount">{{ +p.amount | number:'1.0-0' }} FCFA</div>
+                    </div>
+                </div>
+
+                <div class="amounts-row">
+                    <div class="amount-block paid">
+                        <span class="amount-label">Payé</span>
+                        <span class="amount-val">{{ +order()!.amount_paid | number:'1.0-0' }} FCFA</span>
+                    </div>
+                    <div class="amount-block due" *ngIf="+order()!.amount_due > 0">
+                        <span class="amount-label">Reste à payer</span>
+                        <span class="amount-val">{{ +order()!.amount_due | number:'1.0-0' }} FCFA</span>
+                    </div>
+                </div>
+
+                <!-- Formulaire encaissement rapide -->
+                <div class="pay-form" *ngIf="+order()!.amount_due > 0 && order()!.status !== 'cancelled'">
+                    <div class="pay-form-title">Encaisser le solde</div>
+                    <div class="pay-form-row">
+                        <input type="number" [(ngModel)]="payAmount"
+                               [placeholder]="order()!.amount_due.toString()" class="pay-input" />
+                        <select [(ngModel)]="payMethod" class="pay-select">
+                            <option value="cash">💵 Espèces</option>
+                            <option value="card">💳 Carte</option>
+                            <option value="mobile_money">📱 Mobile Money</option>
+                            <option value="check">🏦 Chèque</option>
+                        </select>
+                        <button class="btn-pay" (click)="encaisser()" [disabled]="paying()">
+                            {{ paying() ? '...' : 'Encaisser' }}
+                        </button>
+                    </div>
+                    <div class="monnaie" *ngIf="payAmount > +order()!.amount_due">
+                        Monnaie à rendre : <strong>{{ payAmount - +order()!.amount_due | number:'1.0-0' }} FCFA</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Colonne droite -->
+        <div class="side-col">
+
+            <!-- Impression -->
+            <div class="detail-card" *ngIf="settings()">
+                <h3>🖨️ Impression</h3>
+                <app-ticket-printer
+                    [order]="order()!"
+                    [shopName]="settings()!.shop_name"
+                    [shopPhone]="settings()!.shop_phone || ''"
+                    [shopAddress]="settings()!.shop_address || ''">
+                </app-ticket-printer>
+            </div>
+
+            <!-- Timeline statuts -->
+            <div class="detail-card">
+                <h3>📅 Historique statuts</h3>
+                <div class="timeline">
+                    <div class="tl-item" [class.done]="true">
+                        <div class="tl-dot done"></div>
+                        <div class="tl-info">
+                            <div class="tl-label">Réceptionné</div>
+                            <div class="tl-date">{{ order()!.received_at | date:'dd/MM HH:mm' }}</div>
+                        </div>
+                    </div>
+                    <div class="tl-item" [class.done]="['processing','ready','delivered'].includes(order()!.status)">
+                        <div class="tl-dot" [class.done]="['processing','ready','delivered'].includes(order()!.status)"></div>
+                        <div class="tl-info">
+                            <div class="tl-label">En traitement</div>
+                            <div class="tl-date" *ngIf="['processing','ready','delivered'].includes(order()!.status)">
+                                —
+                            </div>
+                        </div>
+                    </div>
+                    <div class="tl-item" [class.done]="['ready','delivered'].includes(order()!.status)">
+                        <div class="tl-dot" [class.done]="['ready','delivered'].includes(order()!.status)"></div>
+                        <div class="tl-info">
+                            <div class="tl-label">Prête</div>
+                            <div class="tl-date" *ngIf="order()!.ready_at">
+                                {{ order()!.ready_at | date:'dd/MM HH:mm' }}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="tl-item" [class.done]="order()!.status === 'delivered'">
+                        <div class="tl-dot" [class.done]="order()!.status === 'delivered'"></div>
+                        <div class="tl-info">
+                            <div class="tl-label">Livrée</div>
+                            <div class="tl-date" *ngIf="order()!.delivered_at">
+                                {{ order()!.delivered_at | date:'dd/MM HH:mm' }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<ng-template #loading>
+    <div class="loading-state">
+        <div class="spinner"></div>
+        <p>Chargement...</p>
+    </div>
+</ng-template>

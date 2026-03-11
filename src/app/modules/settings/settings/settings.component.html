@@ -1,0 +1,158 @@
+<div class="page">
+    <div class="page-header">
+        <div>
+            <h1>⚙️ Paramètres</h1>
+            <p class="subtitle">Configuration de votre pressing</p>
+        </div>
+        <button class="btn-primary" (click)="save()" [disabled]="saving()">
+            {{ saving() ? 'Enregistrement...' : '💾 Enregistrer' }}
+        </button>
+    </div>
+
+    <div class="saved-toast" *ngIf="saved()">✓ Paramètres enregistrés</div>
+
+    <form [formGroup]="form" class="settings-grid">
+
+        <!-- Informations boutique -->
+        <div class="settings-card">
+            <h3>🏪 Boutique</h3>
+
+            <div class="form-group">
+                <label>Nom du pressing *</label>
+                <input formControlName="shop_name" placeholder="Mon Pressing" />
+            </div>
+            <div class="form-group">
+                <label>Adresse</label>
+                <input formControlName="shop_address" placeholder="Rue, Quartier, Ville" />
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Téléphone</label>
+                    <input formControlName="shop_phone" placeholder="07 00 00 00 00" />
+                </div>
+                <div class="form-group">
+                    <label>Email</label>
+                    <input formControlName="shop_email" placeholder="contact@pressing.com" />
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Numéro fiscal / IFU</label>
+                <input formControlName="tax_number" placeholder="IFU..." />
+            </div>
+        </div>
+
+        <!-- Tarification -->
+        <div class="settings-card">
+            <h3>💰 Tarification</h3>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>TVA par défaut (%)</label>
+                    <div class="input-suffix">
+                        <input type="number" formControlName="default_tax_rate" min="0" max="100" step="0.5" />
+                        <span>%</span>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Délai traitement par défaut</label>
+                    <div class="input-suffix">
+                        <input type="number" formControlName="default_processing_days" min="1" />
+                        <span>jours</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Devise</label>
+                    <select formControlName="currency">
+                        <option value="XOF">XOF (Franc CFA)</option>
+                        <option value="EUR">EUR (Euro)</option>
+                        <option value="USD">USD (Dollar)</option>
+                        <option value="GNF">GNF (Franc Guinéen)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Symbole</label>
+                    <input formControlName="currency_symbol" placeholder="FCFA" />
+                </div>
+            </div>
+
+            <div class="info-box">
+                <span>ℹ️</span>
+                <span>La TVA s'applique à toutes les nouvelles commandes. Les commandes existantes ne sont pas affectées.</span>
+            </div>
+        </div>
+
+        <!-- Impression -->
+        <div class="settings-card">
+            <h3>🖨️ Impression</h3>
+
+            <div class="toggle-list">
+                <div class="toggle-row">
+                    <div class="toggle-info">
+                        <span class="toggle-title">Imprimer le reçu automatiquement</span>
+                        <span class="toggle-desc">Lance l'impression du reçu à chaque nouvelle commande</span>
+                    </div>
+                    <div class="toggle-switch" [class.on]="form.get('print_auto_receipt')?.value"
+                         (click)="toggle('print_auto_receipt')">
+                        <div class="toggle-knob"></div>
+                    </div>
+                </div>
+                <div class="toggle-row">
+                    <div class="toggle-info">
+                        <span class="toggle-title">Imprimer les stickers automatiquement</span>
+                        <span class="toggle-desc">Lance l'impression des stickers de marquage à la réception</span>
+                    </div>
+                    <div class="toggle-switch" [class.on]="form.get('print_auto_sticker')?.value"
+                         (click)="toggle('print_auto_sticker')">
+                        <div class="toggle-knob"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group" style="margin-top:16px">
+                <label>Message pied de reçu</label>
+                <textarea formControlName="receipt_footer" rows="3"
+                          placeholder="Merci de votre confiance ! Nous vous remercions..."></textarea>
+            </div>
+        </div>
+
+        <!-- Notifications SMS -->
+        <div class="settings-card">
+            <h3>📱 Notifications SMS</h3>
+
+            <div class="toggle-list">
+                <div class="toggle-row">
+                    <div class="toggle-info">
+                        <span class="toggle-title">Activer les SMS</span>
+                        <span class="toggle-desc">Notifie les clients quand leur commande est prête</span>
+                    </div>
+                    <div class="toggle-switch" [class.on]="form.get('sms_notification')?.value"
+                         (click)="toggle('sms_notification')">
+                        <div class="toggle-knob"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div *ngIf="form.get('sms_notification')?.value" class="sms-config">
+                <div class="form-group">
+                    <label>Clé API SMS</label>
+                    <input formControlName="sms_api_key" type="password" placeholder="••••••••••••" />
+                </div>
+                <div class="form-group">
+                    <label>Message SMS "Commande prête"</label>
+                    <textarea formControlName="sms_template_ready" rows="3"
+                              placeholder="Bonjour {client}, votre commande {receipt} est prête. À bientôt !"></textarea>
+                    <span class="hint">Variables : &#123;client&#125;, &#123;receipt&#125;, &#123;shop&#125;</span>
+                </div>
+            </div>
+
+            <div class="info-box warning" *ngIf="!form.get('sms_notification')?.value">
+                <span>💡</span>
+                <span>Activez les SMS pour notifier automatiquement vos clients quand leur linge est prêt.</span>
+            </div>
+        </div>
+
+    </form>
+</div>

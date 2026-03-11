@@ -1,0 +1,50 @@
+<div class="shell">
+    <!-- Sidebar -->
+    <aside class="sidebar" [class.collapsed]="sidebarCollapsed()">
+        <div class="sidebar-header">
+            <div class="logo">
+                <span class="logo-icon">✦</span>
+                <span class="logo-text">CleanPro</span>
+            </div>
+            <button class="collapse-btn" (click)="sidebarCollapsed.set(!sidebarCollapsed())">
+                {{ sidebarCollapsed() ? '→' : '←' }}
+            </button>
+        </div>
+
+        <nav class="sidebar-nav">
+            <ng-container *ngFor="let item of navItems">
+                <a [routerLink]="item.route" routerLinkActive="active"
+                   class="nav-item" [title]="item.label">
+                    <span class="nav-icon">{{ item.icon }}</span>
+                    <span class="nav-label">{{ item.label }}</span>
+                </a>
+            </ng-container>
+        </nav>
+
+        <div class="sidebar-footer">
+            <div class="user-info">
+                <div class="user-avatar">{{ initials() }}</div>
+                <div class="user-details">
+                    <span class="user-name">{{ auth.user()?.full_name }}</span>
+                    <span class="user-role">{{ auth.user()?.role }}</span>
+                </div>
+            </div>
+            <button class="logout-btn" (click)="auth.logout()" title="Déconnexion">⏻</button>
+        </div>
+    </aside>
+
+    <!-- Main content -->
+    <main class="main-content">
+        <header class="topbar">
+            <div class="topbar-left">
+                <h1 class="page-title">Cleaning Management</h1>
+            </div>
+            <div class="topbar-right">
+                <span class="topbar-date">{{ today | date:'EEEE d MMMM yyyy':'' }}</span>
+            </div>
+        </header>
+        <div class="content-area">
+            <router-outlet />
+        </div>
+    </main>
+</div>

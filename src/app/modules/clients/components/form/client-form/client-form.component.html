@@ -1,1 +1,122 @@
-<p>client-form works!</p>
+<div class="page">
+    <div class="page-header">
+        <a routerLink="/clients" class="back-link">← Clients</a>
+        <h1>{{ isEdit ? 'Modifier le client' : 'Nouveau client' }}</h1>
+    </div>
+
+    <form [formGroup]="form" (ngSubmit)="onSubmit()" class="form-layout">
+
+        <!-- Type de client -->
+        <div class="form-card">
+            <h3>Type de client</h3>
+            <div class="type-toggle">
+                <label class="toggle-opt" [class.selected]="form.get('type')?.value === 'company'">
+                    <input type="radio" formControlName="type" value="company" hidden />
+                    🏢 Entreprise
+                </label>
+                <label class="toggle-opt" [class.selected]="form.get('type')?.value === 'individual'">
+                    <input type="radio" formControlName="type" value="individual" hidden />
+                    👤 Particulier
+                </label>
+            </div>
+        </div>
+
+        <div class="form-cols">
+            <div class="form-col">
+                <div class="form-card">
+                    <h3>Informations du contact</h3>
+
+                    <div class="form-group" *ngIf="form.get('type')?.value === 'company'">
+                        <label>Raison sociale</label>
+                        <input formControlName="company_name" placeholder="ACME Corporation" />
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Prénom *</label>
+                            <input formControlName="contact_first_name" placeholder="Jean" />
+                        </div>
+                        <div class="form-group">
+                            <label>Nom *</label>
+                            <input formControlName="contact_last_name" placeholder="Dupont" />
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Email *</label>
+                            <input type="email" formControlName="email" placeholder="contact@acme.fr" />
+                        </div>
+                        <div class="form-group">
+                            <label>Téléphone *</label>
+                            <input formControlName="phone" placeholder="01 23 45 67 89" />
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Mobile</label>
+                        <input formControlName="mobile" placeholder="06 00 00 00 00" />
+                    </div>
+
+                    <div class="form-group" *ngIf="form.get('type')?.value === 'company'">
+                        <label>Numéro TVA</label>
+                        <input formControlName="tax_number" placeholder="FR 00 000000000" />
+                    </div>
+
+                    <div class="form-group">
+                        <label>Statut</label>
+                        <div class="radio-group">
+                            <label class="radio-opt" [class.selected]="form.get('status')?.value === 'active'">
+                                <input type="radio" formControlName="status" value="active" hidden />
+                                <span class="dot dot-green"></span> Actif
+                            </label>
+                            <label class="radio-opt" [class.selected]="form.get('status')?.value === 'inactive'">
+                                <input type="radio" formControlName="status" value="inactive" hidden />
+                                <span class="dot dot-red"></span> Inactif
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-col">
+                <div class="form-card">
+                    <h3>Adresse de facturation</h3>
+                    <div class="form-group">
+                        <label>Adresse *</label>
+                        <input formControlName="billing_address" placeholder="15 rue de la Paix" />
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Code postal *</label>
+                            <input formControlName="postal_code" placeholder="75001" />
+                        </div>
+                        <div class="form-group">
+                            <label>Ville *</label>
+                            <input formControlName="city" placeholder="Paris" />
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Pays</label>
+                        <input formControlName="country" placeholder="France" />
+                    </div>
+                </div>
+
+                <div class="form-card">
+                    <h3>Notes</h3>
+                    <div class="form-group">
+            <textarea formControlName="notes" rows="4"
+                      placeholder="Informations complémentaires, préférences, historique..."></textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-actions">
+            <a routerLink="/clients" class="btn-cancel">Annuler</a>
+            <button type="submit" class="btn-submit" [disabled]="form.invalid || saving()">
+                {{ saving() ? 'Enregistrement...' : (isEdit ? 'Modifier' : 'Créer le client') }}
+            </button>
+        </div>
+    </form>
+</div>

@@ -1,1 +1,83 @@
-<p>client-list works!</p>
+<div class="page">
+    <div class="page-header">
+        <div>
+            <h1>Clients</h1>
+            <p class="subtitle">{{ total() }} clients enregistrés</p>
+        </div>
+        <a routerLink="/clients/new" class="btn-primary">+ Nouveau client</a>
+    </div>
+
+    <!-- Filters -->
+    <div class="filters">
+        <input class="search-input" [(ngModel)]="search" (ngModelChange)="onSearch()"
+               placeholder="🔍 Rechercher un client..." />
+        <select [(ngModel)]="statusFilter" (ngModelChange)="load()" class="filter-select">
+            <option value="">Tous les statuts</option>
+            <option value="active">Actif</option>
+            <option value="inactive">Inactif</option>
+        </select>
+        <select [(ngModel)]="typeFilter" (ngModelChange)="load()" class="filter-select">
+            <option value="">Tous les types</option>
+            <option value="company">Entreprise</option>
+            <option value="individual">Particulier</option>
+        </select>
+    </div>
+
+    <!-- Table -->
+    <div class="table-card">
+        <div class="loading-bar" *ngIf="loading()"></div>
+        <table>
+            <thead>
+            <tr>
+                <th>Client</th>
+                <th>Contact</th>
+                <th>Ville</th>
+                <th>Type</th>
+                <th>Propriétés</th>
+                <th>Contrats</th>
+                <th>Statut</th>
+                <th>Actions</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr *ngFor="let c of clients()">
+                <td>
+                    <div class="client-name">{{ c.display_name || c.company_name }}</div>
+                    <div class="client-email">{{ c.email }}</div>
+                </td>
+                <td>{{ c.contact_first_name }} {{ c.contact_last_name }}</td>
+                <td>{{ c.city }}</td>
+                <td>
+            <span class="tag" [class.tag-company]="c.type === 'company'">
+              {{ c.type === 'company' ? 'Entreprise' : 'Particulier' }}
+            </span>
+                </td>
+                <td class="center">{{ c.properties_count ?? '—' }}</td>
+                <td class="center">{{ c.contracts_count ?? '—' }}</td>
+                <td>
+            <span class="badge" [class.badge-active]="c.status === 'active'"
+                  [class.badge-inactive]="c.status !== 'active'">
+              {{ c.status === 'active' ? 'Actif' : 'Inactif' }}
+            </span>
+                </td>
+                <td>
+                    <div class="actions">
+                        <a [routerLink]="['/clients', c.id, 'edit']" class="btn-icon" title="Modifier">✏️</a>
+                        <button class="btn-icon danger" (click)="deleteClient(c)" title="Supprimer">🗑️</button>
+                    </div>
+                </td>
+            </tr>
+            <tr *ngIf="!loading() && !clients().length">
+                <td colspan="8" class="empty">Aucun client trouvé</td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    <div class="pagination" *ngIf="lastPage() > 1">
+        <button [disabled]="page() === 1" (click)="goPage(page() - 1)">← Précédent</button>
+        <span>Page {{ page() }} / {{ lastPage() }}</span>
+        <button [disabled]="page() === lastPage()" (click)="goPage(page() + 1)">Suivant →</button>
+    </div>
+</div>

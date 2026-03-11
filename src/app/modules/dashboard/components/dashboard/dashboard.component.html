@@ -1,1 +1,130 @@
-<p>dashboard works!</p>
+<div class="page">
+    <div class="page-header">
+        <div>
+            <h1>🧺 Tableau de bord</h1>
+            <p class="subtitle">{{ today | date:'EEEE d MMMM yyyy' }}</p>
+        </div>
+        <a routerLink="/orders/new" class="btn-primary">+ Nouvelle réception</a>
+    </div>
+
+    <div class="kpi-grid" *ngIf="stats()">
+        <div class="kpi-card green">
+            <div class="kpi-icon">📦</div>
+            <div class="kpi-value">{{ stats()!.orders_today }}</div>
+            <div class="kpi-label">Commandes aujourd'hui</div>
+        </div>
+        <div class="kpi-card cyan">
+            <div class="kpi-icon">👔</div>
+            <div class="kpi-value">{{ stats()!.items_today }}</div>
+            <div class="kpi-label">Articles réceptionnés</div>
+        </div>
+        <div class="kpi-card purple">
+            <div class="kpi-icon">💰</div>
+            <div class="kpi-value">{{ stats()!.revenue_today | number:'1.0-0' }} FCFA</div>
+            <div class="kpi-label">Recettes du jour</div>
+        </div>
+        <div class="kpi-card yellow" [class.alert]="stats()!.late_orders > 0">
+            <div class="kpi-icon">⚠️</div>
+            <div class="kpi-value">{{ stats()!.late_orders }}</div>
+            <div class="kpi-label">Commandes en retard</div>
+        </div>
+    </div>
+
+    <!-- Statuts en cours -->
+    <div class="status-row" *ngIf="stats()">
+        <div class="status-card" routerLink="/orders" [queryParams]="{status:'pending'}">
+            <span class="status-dot dot-pending"></span>
+            <span class="status-count">{{ stats()!.pending_orders }}</span>
+            <span class="status-label">En attente</span>
+        </div>
+        <div class="status-card" routerLink="/orders" [queryParams]="{status:'processing'}">
+            <span class="status-dot dot-processing"></span>
+            <span class="status-count">{{ stats()!.processing_orders }}</span>
+            <span class="status-label">En traitement</span>
+        </div>
+        <div class="status-card highlight" routerLink="/orders" [queryParams]="{status:'ready'}">
+            <span class="status-dot dot-ready"></span>
+            <span class="status-count">{{ stats()!.ready_orders }}</span>
+            <span class="status-label">Prêtes à retirer</span>
+        </div>
+    </div>
+
+    <div class="bottom-grid">
+        <!-- Prêtes à récupérer -->
+        <div class="list-card">
+            <div class="list-header">
+                <h3>✅ Prêtes à récupérer</h3>
+                <a routerLink="/orders" [queryParams]="{status:'ready'}" class="see-all">Voir tout</a>
+            </div>
+            <div class="order-list" *ngIf="stats()">
+                <div class="order-row" *ngFor="let o of stats()!.ready_list"
+                     [routerLink]="['/orders', o.id]">
+                    <div class="order-ref">{{ o.receipt_number }}</div>
+                    <div class="order-client">{{ o.client_display_name }}</div>
+                    <div class="order-date">{{ o.promised_at | date:'dd/MM HH:mm' }}</div>
+                    <span class="badge badge-ready">Prêt</span>
+                </div>
+                <div class="empty" *ngIf="!stats()!.ready_list.length">
+                    Aucune commande prête 🎉
+                </div>
+            </div>
+        </div>
+
+        <!-- En retard -->
+        <div class="list-card">
+            <div class="list-header">
+                <h3>🔴 En retard</h3>
+                <a routerLink="/orders" [queryParams]="{late:'true'}" class="see-all">Voir tout</a>
+            </div>
+            <div class="order-list" *ngIf="stats()">
+                <div class="order-row late" *ngFor="let o of stats()!.late_list"
+                     [routerLink]="['/orders', o.id]">
+                    <div class="order-ref">{{ o.receipt_number }}</div>
+                    <div class="order-client">{{ o.client_display_name }}</div>
+                    <div class="order-date late-date">{{ o.promised_at | date:'dd/MM HH:mm' }}</div>
+                    <span class="badge badge-late">Retard</span>
+                </div>
+                <div class="empty" *ngIf="!stats()!.late_list.length">
+                    Aucun retard ✅
+                </div>
+            </div>
+        </div>
+
+        <!-- Ventilation paiements -->
+        <div class="list-card payment-card" *ngIf="stats()">
+            <div class="list-header">
+                <h3>💳 Recettes du jour</h3>
+            </div>
+            <div class="payment-bars">
+                <div class="payment-row">
+                    <span>💵 Espèces</span>
+                    <div class="bar-wrap">
+                        <div class="bar" [style.width.%]="barPct(stats()!.revenue_cash)"
+                             style="background:#4fffb0"></div>
+                    </div>
+                    <span class="amount">{{ stats()!.revenue_cash | number:'1.0-0' }}</span>
+                </div>
+                <div class="payment-row">
+                    <span>💳 Carte</span>
+                    <div class="bar-wrap">
+                        <div class="bar" [style.width.%]="barPct(stats()!.revenue_card)"
+                             style="background:#00cfff"></div>
+                    </div>
+                    <span class="amount">{{ stats()!.revenue_card | number:'1.0-0' }}</span>
+                </div>
+                <div class="payment-row">
+                    <span>📱 Mobile Money</span>
+                    <div class="bar-wrap">
+                        <div class="bar" [style.width.%]="barPct(stats()!.revenue_mobile)"
+                             style="background:#b388ff"></div>
+                    </div>
+                    <span class="amount">{{ stats()!.revenue_mobile | number:'1.0-0' }}</span>
+                </div>
+                <div class="total-row">
+                    <span>Total</span>
+                    <span class="total-amount">{{ stats()!.revenue_today | number:'1.0-0' }} FCFA</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

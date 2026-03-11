@@ -1,0 +1,100 @@
+<div class="page">
+    <div class="page-header">
+        <div>
+            <h1>👥 Utilisateurs</h1>
+            <p class="subtitle">{{ total() }} comptes</p>
+        </div>
+        <a routerLink="/users/new" class="btn-primary">+ Nouvel utilisateur</a>
+    </div>
+
+    <!-- Filtres rôles rapides -->
+    <div class="role-filters">
+        <button class="role-btn" [class.active]="!roleFilter" (click)="setRole(null)">
+            Tous
+        </button>
+        <button *ngFor="let r of roles()" class="role-btn"
+                [class.active]="roleFilter === r.id"
+                [style.border-color]="roleFilter === r.id ? roleColor(r.name) : ''"
+                [style.color]="roleFilter === r.id ? roleColor(r.name) : ''"
+                (click)="setRole(r.id)">
+            {{ roleLabel(r.name) }}
+            <span class="role-count">{{ r.users_count }}</span>
+        </button>
+    </div>
+
+    <!-- Recherche -->
+    <div class="filters">
+        <input class="search-input" [(ngModel)]="search" (ngModelChange)="onSearch()"
+               placeholder="🔍 Nom, email, téléphone..." />
+        <select [(ngModel)]="activeFilter" (ngModelChange)="load()" class="filter-select">
+            <option value="">Tous</option>
+            <option value="true">Actifs</option>
+            <option value="false">Inactifs</option>
+        </select>
+    </div>
+
+    <!-- Table -->
+    <div class="table-card">
+        <div class="loading-bar" *ngIf="loading()"></div>
+        <table>
+            <thead>
+            <tr>
+                <th>Utilisateur</th>
+                <th>Rôle</th>
+                <th>Téléphone</th>
+                <th>Dernière connexion</th>
+                <th>Statut</th>
+                <th>Actions</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr *ngFor="let u of users()">
+                <td>
+                    <div class="user-cell">
+                        <div class="avatar" [style.background]="avatarBg(u)">
+                            {{ u.first_name.charAt(0).toUpperCase() }}
+                        </div>
+                        <div>
+                            <div class="user-name">{{ u.first_name }} {{ u.last_name }}</div>
+                            <div class="user-email">{{ u.email }}</div>
+                        </div>
+                    </div>
+                </td>
+                <td>
+            <span class="role-badge"
+                  [style.background]="roleColor(u.role?.name || '') + '22'"
+                  [style.color]="roleColor(u.role?.name || '')">
+              {{ roleLabel(u.role?.name || '') }}
+            </span>
+                </td>
+                <td class="phone">{{ u.phone || '—' }}</td>
+                <td class="date">{{ u.last_login_at ? (u.last_login_at | date:'dd/MM/yyyy HH:mm') : 'Jamais' }}</td>
+                <td>
+                    <span class="status-dot" [class.active]="u.status === 'active'"></span>
+                    {{ u.status === 'active' ? 'Actif' : 'Inactif' }}
+                </td>
+                <td>
+                    <div class="actions">
+                        <a [routerLink]="['/users', u.id, 'edit']" class="btn-icon" title="Modifier">✏️</a>
+                        <a [routerLink]="['/users', u.id, 'permissions']" class="btn-icon perms"
+                           title="Habilitations">🔑</a>
+                        <button class="btn-icon" [class.danger]="u.is_active"
+                                (click)="toggleActive(u)" title="Activer/Désactiver">
+                            {{ u.is_active ? '🔒' : '🔓' }}
+                        </button>
+                    </div>
+                </td>
+            </tr>
+            <tr *ngIf="!loading() && !users().length">
+                <td colspan="6" class="empty">Aucun utilisateur trouvé</td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="pagination" *ngIf="lastPage() > 1">
+        <button [disabled]="page()===1" (click)="goPage(page()-1)">← Précédent</button>
+        <span>Page {{ page() }} / {{ lastPage() }}</span>
+        <button [disabled]="page()===lastPage()" (click)="goPage(page()+1)">Suivant →</button>
+    </div>
+</div>

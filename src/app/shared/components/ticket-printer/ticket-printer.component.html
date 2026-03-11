@@ -1,0 +1,170 @@
+<!-- Boutons d'impression -->
+<div class="print-actions">
+    <button class="print-btn receipt" (click)="printReceipt()" [disabled]="printing()">
+        🖨️ Imprimer le reçu
+    </button>
+    <button class="print-btn sticker" (click)="printStickers()" [disabled]="printing()">
+        🏷️ Imprimer les stickers ({{ order.items?.length || 0 }})
+    </button>
+    <button class="print-btn prep" (click)="printPrep()" [disabled]="printing()">
+        📋 Ticket préparation
+    </button>
+</div>
+
+<!-- Zone d'impression (cachée à l'écran, visible à l'impression) -->
+<div class="print-zone" id="print-zone" *ngIf="printMode()">
+
+    <!-- ── REÇU CLIENT ─────────────────────────────────────────── -->
+    <div class="receipt-doc" *ngIf="printMode() === 'receipt'">
+        <div class="doc-header">
+            <div class="shop-name">{{ shopName }}</div>
+            <div class="shop-info">{{ shopAddress }}</div>
+            <div class="shop-info">{{ shopPhone }}</div>
+            <div class="doc-title">REÇU CLIENT</div>
+            <div class="receipt-number">{{ order.receipt_number }}</div>
+        </div>
+
+        <div class="doc-separator">────────────────────────────</div>
+
+        <div class="receipt-info">
+            <div class="info-row">
+                <span>Client :</span>
+                <span>{{ order.client_display_name }}</span>
+            </div>
+            <div class="info-row" *ngIf="order.client_phone">
+                <span>Tél :</span>
+                <span>{{ order.client_phone }}</span>
+            </div>
+            <div class="info-row" *ngIf="order.reference">
+                <span>Réf :</span>
+                <span>{{ order.reference }}</span>
+            </div>
+            <div class="info-row">
+                <span>Réception :</span>
+                <span>{{ order.received_at | date:'dd/MM/yyyy HH:mm' }}</span>
+            </div>
+            <div class="info-row">
+                <span>Retour prévu :</span>
+                <span class="promised">{{ order.promised_at | date:'dd/MM/yyyy HH:mm' }}</span>
+            </div>
+        </div>
+
+        <div class="doc-separator">────────────────────────────</div>
+
+        <table class="items-table">
+            <thead>
+            <tr>
+                <th>Article</th>
+                <th>Qté</th>
+                <th>P.U.</th>
+                <th>Total</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr *ngFor="let item of order.items">
+                <td>
+                    {{ item.article?.name }}
+                    <div class="item-service">{{ item.service_label }}</div>
+                </td>
+                <td class="center">{{ item.quantity }}</td>
+                <td class="right">{{ item.unit_price | number:'1.0-0' }}</td>
+                <td class="right">{{ item.total | number:'1.0-0' }}</td>
+            </tr>
+            </tbody>
+        </table>
+
+        <div class="doc-separator">────────────────────────────</div>
+
+        <div class="totals">
+            <div class="total-row">
+                <span>Sous-total</span>
+                <span>{{ order.subtotal | number:'1.0-0' }} FCFA</span>
+            </div>
+            <div class="total-row" *ngIf="+order.discount_amount > 0">
+                <span>Remise</span>
+                <span>-{{ order.discount_amount | number:'1.0-0' }} FCFA</span>
+            </div>
+            <div class="total-row">
+                <span>TVA ({{ order.tax_rate }}%)</span>
+                <span>{{ order.tax_amount | number:'1.0-0' }} FCFA</span>
+            </div>
+            <div class="total-row grand">
+                <span>TOTAL</span>
+                <span>{{ order.total | number:'1.0-0' }} FCFA</span>
+            </div>
+            <div class="total-row paid" *ngIf="+order.amount_paid > 0">
+                <span>Payé</span>
+                <span>{{ order.amount_paid | number:'1.0-0' }} FCFA</span>
+            </div>
+            <div class="total-row due" *ngIf="+order.amount_due > 0">
+                <span>Reste à payer</span>
+                <span>{{ order.amount_due | number:'1.0-0' }} FCFA</span>
+            </div>
+        </div>
+
+        <div class="doc-separator">────────────────────────────</div>
+
+        <div class="receipt-footer">
+            Merci de votre confiance !<br/>
+            Pensez à vérifier vos articles à la restitution.
+        </div>
+        <div class="receipt-footer small">
+            Conservez ce reçu pour retirer vos articles.
+        </div>
+    </div>
+
+    <!-- ── STICKERS DE MARQUAGE ───────────────────────────────── -->
+    <div class="stickers-doc" *ngIf="printMode() === 'stickers'">
+        <div class="sticker" *ngFor="let item of order.items; let i = index">
+            <div class="sticker-top">
+                <div class="sticker-shop">{{ shopName }}</div>
+                <div class="sticker-num">{{ i + 1 }}/{{ order.items?.length }}</div>
+            </div>
+            <div class="sticker-receipt">{{ order.receipt_number }}</div>
+            <div class="sticker-client">{{ order.client_display_name }}</div>
+            <div class="sticker-article">{{ item.article?.name }}</div>
+            <div class="sticker-service">{{ item.service_label }}</div>
+            <div class="sticker-date">
+                Retour : {{ order.promised_at | date:'dd/MM/yyyy' }}
+            </div>
+            <div class="sticker-code">{{ item.sticker_code }}</div>
+        </div>
+    </div>
+
+    <!-- ── TICKET PRÉPARATION ────────────────────────────────── -->
+    <div class="prep-doc" *ngIf="printMode() === 'prep'">
+        <div class="doc-header">
+            <div class="doc-title">TICKET DE PRÉPARATION</div>
+            <div class="receipt-number">{{ order.receipt_number }}</div>
+            <div class="prep-date">{{ order.received_at | date:'dd/MM/yyyy HH:mm' }}</div>
+        </div>
+
+        <div class="doc-separator">────────────────────────────</div>
+
+        <div class="prep-client">
+            <strong>{{ order.client_display_name }}</strong>
+            <span *ngIf="order.reference"> — Réf: {{ order.reference }}</span>
+        </div>
+        <div class="prep-promised">
+            ⏰ Retour prévu : {{ order.promised_at | date:'dd/MM/yyyy HH:mm' }}
+        </div>
+
+        <div class="doc-separator">────────────────────────────</div>
+
+        <div class="prep-items">
+            <div class="prep-item" *ngFor="let item of order.items; let i = index">
+                <div class="prep-check">☐</div>
+                <div class="prep-details">
+                    <div class="prep-article">{{ item.article?.name }}</div>
+                    <div class="prep-service">{{ item.service_label }} × {{ item.quantity }}</div>
+                    <div class="prep-notes" *ngIf="item.condition_notes">
+                        ⚠️ {{ item.condition_notes }}
+                    </div>
+                    <div class="prep-code">{{ item.sticker_code }}</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="doc-separator">────────────────────────────</div>
+        <div class="prep-total">Total articles : {{ order.items?.length }}</div>
+    </div>

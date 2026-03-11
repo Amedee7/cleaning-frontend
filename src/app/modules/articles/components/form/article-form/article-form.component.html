@@ -1,0 +1,121 @@
+<div class="page">
+    <div class="page-header">
+        <a routerLink="/articles" class="back-link">← Articles</a>
+        <h1>{{ isEdit ? "Modifier l'article" : 'Nouvel article' }}</h1>
+    </div>
+
+    <form [formGroup]="form" (ngSubmit)="onSubmit()" class="form-layout">
+        <div class="form-cols">
+            <div class="form-col">
+                <div class="form-card">
+                    <h3>Informations</h3>
+
+                    <div class="form-group">
+                        <label>Catégorie *</label>
+                        <select formControlName="category_id">
+                            <option value="">Sélectionner une catégorie</option>
+                            <option *ngFor="let c of categories()" [value]="c.id">
+                                {{ c.icon }} {{ c.name }}
+                            </option>
+                        </select>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Nom de l'article *</label>
+                            <input formControlName="name" placeholder="Ex: Chemise homme" />
+                        </div>
+                        <div class="form-group">
+                            <label>Référence</label>
+                            <input formControlName="reference" placeholder="CH-001" />
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Description</label>
+                        <textarea formControlName="description" rows="2"
+                                  placeholder="Description optionnelle..."></textarea>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Délai de traitement (jours)</label>
+                            <input type="number" formControlName="processing_days" min="1" />
+                        </div>
+                        <div class="form-group">
+                            <label>Unité</label>
+                            <select formControlName="unit">
+                                <option value="pièce">Pièce</option>
+                                <option value="kg">Kg</option>
+                                <option value="lot">Lot</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Options</label>
+                        <div class="checkbox-row">
+                            <label class="checkbox-opt" [class.checked]="form.get('requires_marking')?.value">
+                                <input type="checkbox" formControlName="requires_marking" hidden />
+                                <span class="check-box">{{ form.get('requires_marking')?.value ? '✓' : '' }}</span>
+                                Nécessite un sticker de marquage
+                            </label>
+                            <label class="checkbox-opt" [class.checked]="form.get('is_active')?.value">
+                                <input type="checkbox" formControlName="is_active" hidden />
+                                <span class="check-box">{{ form.get('is_active')?.value ? '✓' : '' }}</span>
+                                Article actif
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-col">
+                <div class="form-card">
+                    <h3>💰 Tarifs (FCFA)</h3>
+
+                    <div class="price-preview" *ngIf="form.get('price_full')?.value">
+                        <span>Prix principal</span>
+                        <span class="price-big">{{ form.get('price_full')?.value | number:'1.0-0' }} FCFA</span>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Prestation complète *</label>
+                        <div class="price-input">
+                            <input type="number" formControlName="price_full" placeholder="0" min="0" step="100" />
+                            <span class="currency">FCFA</span>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Nettoyage seul</label>
+                        <div class="price-input">
+                            <input type="number" formControlName="price_cleaning" placeholder="0" min="0" step="100" />
+                            <span class="currency">FCFA</span>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Repassage seul</label>
+                        <div class="price-input">
+                            <input type="number" formControlName="price_ironing" placeholder="0" min="0" step="100" />
+                            <span class="currency">FCFA</span>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Nettoyage à sec</label>
+                        <div class="price-input">
+                            <input type="number" formControlName="price_dry_cleaning" placeholder="0" min="0" step="100" />
+                            <span class="currency">FCFA</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-actions">
+            <a routerLink="/articles" class="btn-cancel">Annuler</a>
+            <button type="submit" class="btn-submit" [disabled]="form.invalid || saving()">
+                {{ saving() ? "Enregistrement..." : (isEdit ? 'Modifier' : "Créer l'article") }}
+            </button>
+        </div>
+    </form>
+</div>

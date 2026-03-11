@@ -1,0 +1,94 @@
+<div class="page">
+    <div class="page-header">
+        <div>
+            <h1>👔 Articles</h1>
+            <p class="subtitle">{{ total() }} articles dans le catalogue</p>
+        </div>
+        <a routerLink="/articles/new" class="btn-primary">+ Nouvel article</a>
+    </div>
+
+    <!-- Catégories -->
+    <div class="categories">
+        <button class="cat-btn" [class.active]="!catFilter"
+                (click)="setCat(null)">Tous</button>
+        <button *ngFor="let c of categories()" class="cat-btn"
+                [class.active]="catFilter === c.id"
+                (click)="setCat(c.id)"
+                [style.border-color]="catFilter === c.id ? c.color : ''">
+            {{ c.icon }} {{ c.name }}
+        </button>
+    </div>
+
+    <!-- Filtres -->
+    <div class="filters">
+        <input class="search-input" [(ngModel)]="search" (ngModelChange)="onSearch()"
+               placeholder="🔍 Nom, référence..." />
+        <select [(ngModel)]="activeFilter" (ngModelChange)="load()" class="filter-select">
+            <option value="">Tous</option>
+            <option value="true">Actifs</option>
+            <option value="false">Inactifs</option>
+        </select>
+    </div>
+
+    <!-- Grille -->
+    <div class="articles-grid" *ngIf="!loading()">
+        <div class="article-card" *ngFor="let a of articles()">
+            <div class="card-header">
+                <div class="cat-tag" [style.background]="a.category?.color + '22'"
+                     [style.color]="a.category?.color">
+                    {{ a.category?.icon }} {{ a.category?.name }}
+                </div>
+                <span class="status-dot" [class.active]="a.is_active"></span>
+            </div>
+
+            <div class="article-name">{{ a.name }}</div>
+            <div class="article-ref" *ngIf="a.reference">{{ a.reference }}</div>
+
+            <div class="prices-grid">
+                <div class="price-item">
+                    <span class="price-label">Complet</span>
+                    <span class="price-val main">{{ a.price_full | number:'1.0-0' }}</span>
+                </div>
+                <div class="price-item">
+                    <span class="price-label">Nettoyage</span>
+                    <span class="price-val">{{ a.price_cleaning | number:'1.0-0' }}</span>
+                </div>
+                <div class="price-item">
+                    <span class="price-label">Repassage</span>
+                    <span class="price-val">{{ a.price_ironing | number:'1.0-0' }}</span>
+                </div>
+                <div class="price-item">
+                    <span class="price-label">Sec</span>
+                    <span class="price-val">{{ a.price_dry_cleaning | number:'1.0-0' }}</span>
+                </div>
+            </div>
+
+            <div class="card-footer">
+                <span class="delay">⏱ {{ a.processing_days }}j</span>
+                <div class="actions">
+                    <a [routerLink]="['/articles', a.id, 'edit']" class="btn-icon">✏️</a>
+                    <button class="btn-icon danger" (click)="toggle(a)">
+                        {{ a.is_active ? '🔒' : '🔓' }}
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="empty-state" *ngIf="!articles().length">
+            <div class="empty-icon">👔</div>
+            <p>Aucun article trouvé</p>
+            <a routerLink="/articles/new" class="btn-primary">Ajouter un article</a>
+        </div>
+    </div>
+
+    <!-- Skeleton -->
+    <div class="articles-grid" *ngIf="loading()">
+        <div class="article-card skeleton" *ngFor="let i of [1,2,3,4,5,6]"></div>
+    </div>
+
+    <div class="pagination" *ngIf="lastPage() > 1">
+        <button [disabled]="page()===1" (click)="goPage(page()-1)">← Précédent</button>
+        <span>Page {{ page() }} / {{ lastPage() }}</span>
+        <button [disabled]="page()===lastPage()" (click)="goPage(page()+1)">Suivant →</button>
+    </div>
+</div>

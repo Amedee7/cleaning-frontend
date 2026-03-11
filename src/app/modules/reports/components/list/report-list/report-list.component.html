@@ -1,1 +1,129 @@
-<p>report-list works!</p>
+<div class="page">
+    <p-confirmDialog></p-confirmDialog>
+
+    <div class="page-header">
+        <div>
+            <h1>📊 Rapports journaliers</h1>
+            <p class="subtitle">Suivi de caisse et activité</p>
+        </div>
+        <button class="btn-primary" (click)="generateToday()" [disabled]="generating()">
+            {{ generating() ? '⏳ Génération...' : '🔄 Générer rapport du jour' }}
+        </button>
+    </div>
+
+    <!-- Rapport du jour -->
+    <div class="today-card" *ngIf="todayReport()">
+    <div class="today-header">
+            <div>
+        <span class="today-title">
+          Rapport du {{ todayReport()!.report_date | date:'EEEE d MMMM yyyy'}}
+        </span>
+                <span class="closed-badge" *ngIf="todayReport()!.is_closed">✓ Clôturé</span>
+                <span class="open-badge"   *ngIf="!todayReport()!.is_closed">En cours</span>
+            </div>
+            <button class="btn-close"
+                    *ngIf="!todayReport()!.is_closed"
+                    (click)="closeReport(todayReport()!.report_date)"
+                    [disabled]="closing()">
+                {{ closing() ? '...' : '🔒 Clôturer la caisse' }}
+            </button>
+        </div>
+
+        <div class="kpi-grid">
+            <div class="kpi">
+                <span class="kpi-val green">{{ todayReport()!.orders_received }}</span>
+                <span class="kpi-lbl">Commandes reçues</span>
+            </div>
+            <div class="kpi">
+                <span class="kpi-val cyan">{{ todayReport()!.orders_delivered }}</span>
+                <span class="kpi-lbl">Commandes livrées</span>
+            </div>
+            <div class="kpi">
+                <span class="kpi-val purple">{{ +todayReport()!.total_revenue | number:'1.0-0' }} FCFA</span>
+                <span class="kpi-lbl">Recettes</span>
+            </div>
+            <div class="kpi">
+                <span class="kpi-val yellow">{{ +todayReport()!.total_discounts | number:'1.0-0' }} FCFA</span>
+                <span class="kpi-lbl">Remises accordées</span>
+            </div>
+        </div>
+
+        <!-- Ventilation paiements -->
+        <div class="payment-breakdown">
+            <h4>Ventilation des recettes</h4>
+            <div class="breakdown-grid">
+                <div class="breakdown-item" *ngFor="let m of paymentMethods()">
+                    <span class="method-icon">{{ m.icon }}</span>
+                    <div class="method-info">
+                        <span class="method-name">{{ m.label }}</span>
+                        <span class="method-amount">{{ m.amount | number:'1.0-0' }} FCFA</span>
+                    </div>
+                    <div class="method-bar">
+                        <div class="bar-fill {{ m.cls }}"
+                             [style.width.%]="pct(m.amount, +todayReport()!.total_revenue)">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Message si pas de rapport -->
+    <div class="no-report" *ngIf="!todayReport() && !loading()">
+        <p>Aucun rapport pour aujourd'hui.</p>
+        <button class="btn-primary" (click)="generateToday()" [disabled]="generating()">
+            🔄 Générer maintenant
+        </button>
+    </div>
+
+    <!-- Historique -->
+    <div class="section-title">
+        <h3>Historique</h3>
+        <div class="date-filter">
+            <input type="date" [(ngModel)]="dateFrom" (ngModelChange)="loadHistory()" class="filter-input" />
+            <span>→</span>
+            <input type="date" [(ngModel)]="dateTo" (ngModelChange)="loadHistory()" class="filter-input" />
+        </div>
+    </div>
+
+    <div class="table-card">
+        <div class="loading-bar" *ngIf="loading()"></div>
+        <table>
+            <thead>
+            <tr>
+                <th>Date</th>
+                <th class="center">Reçues</th>
+                <th class="center">Livrées</th>
+                <th class="right">💵 Espèces</th>
+                <th class="right">💳 Carte</th>
+                <th class="right">📱 Mobile</th>
+                <th class="right">Total</th>
+                <th class="right">Remises</th>
+                <th>Statut</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr *ngFor="let r of reports()">
+                <td class="date-cell">{{ r.report_date | date:'EEE dd/MM/yyyy' }}</td>
+                <td class="center">{{ r.orders_received }}</td>
+                <td class="center">{{ r.orders_delivered }}</td>
+                <td class="right">{{ +r.revenue_cash   | number:'1.0-0' }}</td>
+                <td class="right">{{ +r.revenue_card   | number:'1.0-0' }}</td>
+                <td class="right">{{ +r.revenue_mobile | number:'1.0-0' }}</td>
+                <td class="right total-col">{{ +r.total_revenue | number:'1.0-0' }} FCFA</td>
+                <td class="right discount-col">−{{ +r.total_discounts | number:'1.0-0' }}</td>
+                <td>
+            <span class="badge"
+                  [class.badge-closed]="r.is_closed"
+                  [class.badge-open]="!r.is_closed">
+              {{ r.is_closed ? '✓ Clôturé' : 'En cours' }}
+            </span>
+                </td>
+            </tr>
+            <tr *ngIf="!loading() && !reports().length">
+                <td colspan="9" class="empty">Aucun rapport trouvé</td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</div>

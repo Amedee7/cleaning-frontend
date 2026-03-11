@@ -1,0 +1,197 @@
+<div class="page">
+    <div class="page-header">
+      <a routerLink="/orders" class="back-link">← Commandes</a>
+      <h1>🧺 Nouvelle réception</h1>
+    </div>
+  
+    <div class="reception-layout">
+      <!-- Colonne gauche : Client + Articles -->
+      <div class="left-col">
+  
+        <!-- Client -->
+        <div class="form-card">
+          <h3>👤 Client</h3>
+          <div class="client-toggle">
+            <button [class.active]="clientMode==='account'" (click)="setClientMode('account')">Compte client</button>
+            <button [class.active]="clientMode==='anon'"    (click)="setClientMode('anon')">Client anonyme</button>
+          </div>
+  
+          <div *ngIf="clientMode==='account'" class="client-search">
+            <input [(ngModel)]="clientSearch" (ngModelChange)="searchClients()"
+                   placeholder="🔍 Nom, téléphone, entreprise..." class="search-input" />
+            <div class="client-results" *ngIf="clientResults().length">
+              <div class="client-result" *ngFor="let c of clientResults()" (click)="selectClient(c)">
+                <div class="result-name">{{ c.contact_first_name }} {{ c.contact_last_name }}</div>
+                <div class="result-meta">{{ c.phone }} · {{ c.company_name }}</div>
+              </div>
+            </div>
+            <div class="selected-client" *ngIf="selectedClient()">
+              <div class="sc-name">{{ selectedClient()!.contact_first_name }} {{ selectedClient()!.contact_last_name }}</div>
+              <div class="sc-meta">{{ selectedClient()!.phone }} · {{ selectedClient()!.company_name }}</div>
+              <button class="sc-remove" (click)="removeClient()">✕</button>
+            </div>
+          </div>
+  
+          <div *ngIf="clientMode==='anon'" class="anon-form">
+            <div class="form-row">
+              <div class="form-group">
+                <label>Nom</label>
+                <input [(ngModel)]="anonName" placeholder="Nom du client" />
+              </div>
+              <div class="form-group">
+                <label>Téléphone</label>
+                <input [(ngModel)]="anonPhone" placeholder="07 00 00 00 00" />
+              </div>
+            </div>
+          </div>
+  
+          <div class="form-group" style="margin-top:12px">
+            <label>Référence (N° chambre hôtel, etc.)</label>
+            <input [(ngModel)]="reference" placeholder="Optionnel" />
+          </div>
+        </div>
+  
+        <!-- Catalogue articles -->
+        <div class="form-card">
+          <h3>📋 Articles</h3>
+  
+          <!-- Catégories -->
+          <div class="categories">
+            <button *ngFor="let cat of categories()" class="cat-btn"
+                    [class.active]="selectedCat()?.id === cat.id"
+                    (click)="selectCat(cat)">
+              <span>{{ cat.icon }}</span> {{ cat.name }}
+            </button>
+          </div>
+  
+          <!-- Filtre rapide -->
+          <input [(ngModel)]="articleSearch" placeholder="🔍 Rechercher un article..."
+                 class="search-input" style="margin:12px 0" />
+  
+          <!-- Grille articles -->
+          <div class="articles-grid">
+            <div class="article-card" *ngFor="let a of filteredArticles()"
+                 (click)="addArticle(a)">
+              <div class="article-name">{{ a.name }}</div>
+              <div class="article-ref" *ngIf="a.reference">{{ a.reference }}</div>
+              <div class="article-price">{{ a.price_full | number:'1.0-0' }} FCFA</div>
+            </div>
+          </div>
+        </div>
+      </div>
+  
+      <!-- Colonne droite : Récapitulatif commande -->
+      <div class="right-col">
+        <div class="order-summary">
+          <h3>🧾 Commande</h3>
+  
+          <!-- Items -->
+          <div class="order-items">
+            <div class="order-item" *ngFor="let item of orderItems(); let i=index">
+              <div class="item-top">
+                <div class="item-name">{{ item.article?.name }}</div>
+                <button class="item-remove" (click)="removeItem(i)">✕</button>
+              </div>
+              <div class="item-controls">
+                <!-- Service type -->
+                <div class="service-select">
+                  <button *ngFor="let s of serviceTypes" class="svc-btn"
+                          [class.active]="item.service_type === s.value"
+                          (click)="setServiceType(i, s.value)">
+                    {{ s.label }}
+                  </button>
+                </div>
+                <!-- Quantité + prix -->
+                <div class="item-bottom">
+                  <div class="qty-control">
+                    <button (click)="changeQty(i, -1)">−</button>
+                    <span>{{ item.quantity }}</span>
+                    <button (click)="changeQty(i, +1)">+</button>
+                  </div>
+                  <div class="item-price-detail">
+                    {{ item.unit_price | number:'1.0-0' }} × {{ item.quantity }}
+                  </div>
+                  <div class="item-total">{{ item.total | number:'1.0-0' }} FCFA</div>
+                </div>
+                <!-- Notes état -->
+                <input [(ngModel)]="item.condition_notes" placeholder="État / remarque..."
+                       class="condition-input" />
+              </div>
+            </div>
+  
+            <div class="empty-items" *ngIf="!orderItems().length">
+              <p>Cliquez sur un article pour l'ajouter</p>
+            </div>
+          </div>
+  
+          <!-- Dates -->
+          <div class="summary-section">
+            <div class="form-group">
+              <label>Date de retour prévue *</label>
+              <input type="datetime-local" [(ngModel)]="promisedAt" />
+            </div>
+          </div>
+  
+          <!-- Paiement -->
+          <div class="summary-section">
+            <label class="section-label">Encaissement</label>
+            <div class="payment-timing">
+              <label *ngFor="let t of paymentTimings" class="timing-opt"
+                     [class.active]="paymentTiming === t.value">
+                <input type="radio" [(ngModel)]="paymentTiming" [value]="t.value" hidden />
+                {{ t.label }}
+              </label>
+            </div>
+  
+            <div *ngIf="paymentTiming === 'at_reception'" class="payment-now">
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Montant encaissé</label>
+                  <input type="number" [(ngModel)]="amountPaid" [placeholder]="total().toString()" />
+                </div>
+                <div class="form-group">
+                  <label>Mode</label>
+                  <select [(ngModel)]="paymentMethod">
+                    <option *ngFor="let m of paymentMethods" [value]="m.value">{{ m.label }}</option>
+                  </select>
+                </div>
+              </div>
+              <div class="monnaie" *ngIf="amountPaid > total()">
+                Monnaie à rendre : <strong>{{ amountPaid - total() | number:'1.0-0' }} FCFA</strong>
+              </div>
+            </div>
+          </div>
+  
+          <!-- Totaux -->
+          <div class="totals">
+            <div class="total-row">
+              <span>Sous-total</span>
+              <span>{{ subtotal() | number:'1.0-0' }} FCFA</span>
+            </div>
+            <div class="total-row" *ngIf="discount() > 0">
+              <span>Remise</span>
+              <span class="discount">−{{ discount() | number:'1.0-0' }} FCFA</span>
+            </div>
+            <div class="total-row">
+              <span>TVA (18%)</span>
+              <span>{{ taxAmount() | number:'1.0-0' }} FCFA</span>
+            </div>
+            <div class="total-row grand-total">
+              <span>TOTAL</span>
+              <span>{{ total() | number:'1.0-0' }} FCFA</span>
+            </div>
+          </div>
+  
+          <!-- Notes -->
+          <textarea [(ngModel)]="notes" rows="2" placeholder="Commentaires sur le reçu..."
+                    class="notes-input"></textarea>
+  
+          <!-- Action -->
+          <button class="btn-submit" [disabled]="!canSubmit() || saving()"
+                  (click)="submit()">
+            {{ saving() ? 'Création...' : '✓ Créer le reçu' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>

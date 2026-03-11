@@ -1,0 +1,95 @@
+<div class="page">
+    <div class="page-header">
+        <div>
+            <h1>🧾 Commandes</h1>
+            <p class="subtitle">{{ total() }} commandes</p>
+        </div>
+        <a routerLink="/orders/new" class="btn-primary">+ Nouvelle réception</a>
+    </div>
+
+    <!-- Filtres rapides statut -->
+    <div class="quick-filters">
+        <button *ngFor="let f of statusFilters" class="qf-btn"
+                [class.active]="statusFilter === f.value"
+                (click)="setStatus(f.value)">
+            <span [ngClass]="'dot-' + f.value">●</span> {{ f.label }}
+            <span class="qf-count" *ngIf="f.value && counts()[f.value]">{{ counts()[f.value] }}</span>
+        </button>
+    </div>
+
+    <div class="filters">
+        <input class="search-input" [(ngModel)]="search" (ngModelChange)="onSearch()"
+               placeholder="🔍 N° reçu, client, téléphone..." />
+        <input type="date" [(ngModel)]="dateFilter" (ngModelChange)="load()" class="filter-input" />
+    </div>
+
+    <!-- Table -->
+    <div class="table-card">
+        <div class="loading-bar" *ngIf="loading()"></div>
+        <table>
+            <thead>
+            <tr>
+                <th>N° Reçu</th>
+                <th>Client</th>
+                <th>Articles</th>
+                <th>Réception</th>
+                <th>Retour prévu</th>
+                <th>Montant</th>
+                <th>Paiement</th>
+                <th>Statut</th>
+                <th>Actions</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr *ngFor="let o of orders()" [class.late-row]="o.is_late">
+                <td>
+                    <a [routerLink]="['/orders', o.id]" class="receipt-link">{{ o.receipt_number }}</a>
+                    <span class="late-badge" *ngIf="o.is_late">⚠️ Retard</span>
+                </td>
+                <td>
+                    <div class="client-name">{{ o.client_display_name }}</div>
+                    <div class="client-phone">{{ o.client_phone }}</div>
+                    <div class="client-ref" *ngIf="o.reference">📌 {{ o.reference }}</div>
+                </td>
+                <td class="center">
+                    <span class="items-count">{{ o.total_items }}</span>
+                </td>
+                <td>{{ o.received_at | date:'dd/MM HH:mm' }}</td>
+                <td [class.date-late]="isLate(o)">{{ o.promised_at | date:'dd/MM HH:mm' }}</td>
+                <td>
+                    <div class="amount">{{ o.total | number:'1.0-0' }} FCFA</div>
+                    <div class="amount-due" *ngIf="o.amount_due > 0">
+                        Reste: {{ o.amount_due | number:'1.0-0' }}
+                    </div>
+                </td>
+                <td>
+            <span class="badge" [ngClass]="'pay-' + o.payment_status">
+              {{ paymentLabel(o.payment_status) }}
+            </span>
+                </td>
+                <td>
+            <span class="badge" [ngClass]="'status-' + o.status">
+              {{ statusLabel(o.status) }}
+            </span>
+                </td>
+                <td>
+                    <div class="actions">
+                        <a [routerLink]="['/orders', o.id]" class="btn-icon" title="Voir">👁️</a>
+                        <button *ngIf="o.status === 'ready'" class="btn-icon deliver"
+                                (click)="deliver(o)" title="Marquer livré">✓</button>
+                    </div>
+                </td>
+            </tr>
+            <tr *ngIf="!loading() && !orders().length">
+                <td colspan="9" class="empty">Aucune commande trouvée</td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="pagination" *ngIf="lastPage() > 1">
+        <button [disabled]="page()===1" (click)="goPage(page()-1)">← Précédent</button>
+        <span>Page {{ page() }} / {{ lastPage() }}</span>
+        <button [disabled]="page()===lastPage()" (click)="goPage(page()+1)">Suivant →</button>
+    </div>
+</div>
