@@ -4,6 +4,7 @@ import { RouterLink, ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { OrderService } from '../../../../../core/services/pressing.services';
 import { Order } from '../../../../../core/models/pressing.models';
+import {AuthService} from "../../../../../core/services/auth.service";
 
 @Component({
   selector: 'app-order-list',
@@ -32,7 +33,11 @@ export class OrderListComponent implements OnInit {
     { value: 'delivered',  label: 'Livrées' },
   ];
 
-  constructor(private orderService: OrderService, private route: ActivatedRoute) {}
+  constructor(
+      private orderService: OrderService,
+      private route: ActivatedRoute,
+      public auth: AuthService,
+      ) {}
 
   ngOnInit(): void {
     this.route.queryParams.subscribe(p => {

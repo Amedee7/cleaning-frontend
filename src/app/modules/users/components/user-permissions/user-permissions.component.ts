@@ -1,27 +1,26 @@
 import { Component, OnInit, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { UserService } from '../../../../core/services/user.services';
-import {AppUser, Permission, Role, ROLE_COLORS, ROLE_LABELS} from '../../../../core/models/user.models';
+import { AppUser, Permission, ROLE_COLORS, ROLE_LABELS } from '../../../../core/models/user.models';
 
 @Component({
     selector: 'app-user-permissions',
     standalone: true,
     imports: [CommonModule, RouterLink],
-  templateUrl: './user-permissions.component.html',
-  styleUrl: './user-permissions.component.scss'
+    templateUrl: './user-permissions.component.html',
+    styleUrl: './user-permissions.component.scss',
 })
 export class UserPermissionsComponent implements OnInit {
-    user            = signal<AppUser | null>(null);
-    permsByGroup    = signal<Record<string, Permission[]>>({});
-    roles      = signal<Role[]>([]);
-    rolePermissions = signal<string[]>([]);
-    overrides       = signal<Record<string, boolean>>({});  // clé = perm.key, valeur = état actuel UI
+    user              = signal<AppUser | null>(null);
+    permsByGroup      = signal<Record<string, Permission[]>>({});
+    rolePermissions   = signal<string[]>([]);
+    overrides         = signal<Record<string, boolean>>({});
     originalOverrides = signal<Record<string, boolean>>({});
-    saving          = signal(false);
+    saving            = signal(false);
 
-    groupKeys   = computed(() => Object.keys(this.permsByGroup()));
-    totalCount  = computed(() => Object.values(this.permsByGroup()).flat().length);
+    groupKeys      = computed(() => Object.keys(this.permsByGroup()));
+    totalCount     = computed(() => Object.values(this.permsByGroup()).flat().length);
     effectiveCount = computed(() =>
         Object.values(this.permsByGroup()).flat().filter(p => this.isGranted(p.key)).length
     );
@@ -31,7 +30,6 @@ export class UserPermissionsComponent implements OnInit {
 
     constructor(
         private route: ActivatedRoute,
-        private router: Router,
         private userService: UserService,
     ) {}
 
@@ -39,36 +37,52 @@ export class UserPermissionsComponent implements OnInit {
         const id = this.route.snapshot.paramMap.get('id');
         if (!id) return;
 
-        this.userService.getById(+id).subscribe(u => this.user.set(u));
-        this.userService.getRoles().subscribe(r => this.roles.set(r));
-
+        // getById retourne { user, effective_permissions, role_permissions, user_overrides }
+        this.userService.getById(+id).subscribe((data: any) => {
+            this.user.set(data.user ?? data);
+        });
 
         this.userService.getPermissions(+id).subscribe(data => {
             this.permsByGroup.set(data.all_permissions);
             this.rolePermissions.set(data.role_permissions);
 
-            // Construire l'état initial des overrides
             const state: Record<string, boolean> = {};
-            const allPerms = (Object.values(data.all_permissions) as Permission[][]).flat() as Permission[];
-            allPerms.forEach((p: Permission) => {
+            Object.values(data.all_permissions).flat().forEach((p: any) => {
                 const override = (data.user_overrides as any)[p.key];
-                if (override !== undefined) {
-                    state[p.key] = override.granted;
-                }
+                if (override !== undefined) state[p.key] = override.granted;
             });
             this.overrides.set({ ...state });
             this.originalOverrides.set({ ...state });
         });
     }
 
+    // ── Helpers affichage ─────────────────────────────────────────────────────
+    initials(): string {
+        const u = this.user();
+        if (!u) return '';
+        const f = u.first_name?.length ? u.first_name[0] : '';
+        const l = u.last_name?.length  ? u.last_name[0]  : '';
+        return (f + l).toUpperCase();
+    }
+
+    fullName(): string {
+        const u = this.user();
+        if (!u) return '';
+        return [(u.first_name || ''), (u.last_name || '')].join(' ').trim();
+    }
+
+    roleColor(name: string): string { return ROLE_COLORS[name] ?? '#5a5f72'; }
+    roleLabel(name: string): string { return ROLE_LABELS[name] ?? name; }
+
+    // ── Logique permissions ───────────────────────────────────────────────────
     isGranted(key: string): boolean {
         if (key in this.overrides()) return this.overrides()[key];
         return this.rolePermissions().includes(key);
     }
 
-    isFromRole(key: string): boolean    { return this.rolePermissions().includes(key); }
-    hasOverride(key: string): boolean   { return key in this.overrides(); }
-    isOverrideAdded(key: string): boolean {
+    isFromRole(key: string): boolean       { return this.rolePermissions().includes(key); }
+    hasOverride(key: string): boolean      { return key in this.overrides(); }
+    isOverrideAdded(key: string): boolean  {
         return key in this.overrides() && this.overrides()[key] && !this.rolePermissions().includes(key);
     }
     isOverrideRemoved(key: string): boolean {
@@ -76,16 +90,11 @@ export class UserPermissionsComponent implements OnInit {
     }
 
     toggle(key: string): void {
-        const current = this.isGranted(key);
+        const newState    = !this.isGranted(key);
         const roleDefault = this.rolePermissions().includes(key);
-        const newState = !current;
-
-        const updated = { ...this.overrides() };
-        if (newState === roleDefault) {
-            delete updated[key]; // identique au rôle → supprimer l'override
-        } else {
-            updated[key] = newState;
-        }
+        const updated     = { ...this.overrides() };
+        if (newState === roleDefault) delete updated[key];
+        else updated[key] = newState;
         this.overrides.set(updated);
     }
 
@@ -112,21 +121,16 @@ export class UserPermissionsComponent implements OnInit {
         this.overrides.set({});
     }
 
-    discard(): void {
-        this.overrides.set({ ...this.originalOverrides() });
-    }
-
-    roleColor(first_name: string): string  { return ROLE_COLORS[first_name] ?? '#2792ff'; }
-    roleLabel(first_name: string): string  { return ROLE_LABELS[first_name] ?? first_name; }
+    discard(): void { this.overrides.set({ ...this.originalOverrides() }); }
 
     save(): void {
         this.saving.set(true);
         const id = this.route.snapshot.paramMap.get('id')!;
 
-        // Construire l'objet complet pour l'API
-        const allPerms = (Object.values(this.permsByGroup()) as Permission[][]).flat() as Permission[];
         const payload: Record<string, boolean> = {};
-        allPerms.forEach(p => { payload[p.key] = this.isGranted(p.key); });
+        Object.values(this.permsByGroup()).flat().forEach(p => {
+            payload[p.key] = this.isGranted(p.key);
+        });
 
         this.userService.updatePermissions(+id, payload).subscribe({
             next: () => {

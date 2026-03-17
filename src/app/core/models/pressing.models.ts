@@ -1,5 +1,3 @@
-// ─── models/pressing.models.ts ───────────────────────────────────────────────
-
 export interface ArticleCategory {
   id: number;
   name: string;
@@ -10,7 +8,7 @@ export interface ArticleCategory {
 }
 
 export interface Article {
-  id: number;
+  id?: number;
   category_id: number;
   category?: ArticleCategory;
   name: string;
@@ -35,7 +33,7 @@ export interface OrderItem {
   id?: number;
   article_id: number;
   article?: Article;
-  service_type: 'cleaning' | 'ironing' | 'dry_cleaning' | 'full';
+  service_type: 'lavage' | 'repassage' | 'nettoyage_sec' | 'service_complet';
   quantity: number;
   unit_price: number;
   discount_amount: number;
@@ -90,6 +88,10 @@ export interface Order {
   payments?: Payment[];
   total_items?: number;
   is_late?: boolean;
+    pdf_path: string;
+    deposit_pdf_url?: string;
+    receipt_pdf_url: string;
+
 }
 
 export interface PressingDashboard {
@@ -132,4 +134,18 @@ export interface PressingSettings {
   currency: string;
   currency_symbol: string;
   receipt_footer?: string;
+}
+
+
+export interface Client {
+    id: number;
+    company_name?: string;
+    contact_first_name?: string;
+    contact_last_name?: string;
+    phone?: string;
+    mobile?: string;
+    email?: string;
+    type: 'individual' | 'company';
+    status: 'active' | 'inactive';
+    client_group_id: string;
 }

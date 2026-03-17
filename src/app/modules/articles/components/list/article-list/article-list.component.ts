@@ -4,11 +4,16 @@ import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { ArticleService } from '../../../../../core/services/pressing.services';
 import { Article, ArticleCategory } from '../../../../../core/models/pressing.models';
+import {ConfirmationService, MessageService} from "primeng/api";
+import {ConfirmDialogModule} from "primeng/confirmdialog";
+import {ToastModule} from "primeng/toast";
+import {AuthService} from "../../../../../core/services/auth.service";
 
 @Component({
     selector: 'app-article-list',
     standalone: true,
-    imports: [CommonModule, RouterLink, FormsModule],
+    imports: [CommonModule, RouterLink, FormsModule, ConfirmDialogModule, ToastModule],
+    providers: [ConfirmationService, MessageService],
     templateUrl: './article-list.component.html',
     styleUrls: ['./article-list.component.scss']
 })
@@ -24,7 +29,12 @@ export class ArticleListComponent implements OnInit {
     activeFilter = 'true';
     private searchTimer: any;
 
-    constructor(private articleService: ArticleService) {}
+    constructor(
+        private articleService: ArticleService,
+        private confirmationService: ConfirmationService,
+        private messageService: MessageService,
+        public auth: AuthService,
+    ) {}
 
     ngOnInit(): void {
         this.articleService.getCategories().subscribe(c => this.categories.set(c));
@@ -58,6 +68,37 @@ export class ArticleListComponent implements OnInit {
     goPage(p: number): void         { this.page.set(p); this.load(); }
 
     toggle(a: Article): void {
-        this.articleService.update(a.id, { is_active: !a.is_active } as any).subscribe(() => this.load());
+        const nextState = !a.is_active;
+        const actionLabel = nextState ? 'activer' : 'désactiver';
+
+        this.confirmationService.confirm({
+            message: `Voulez-vous vraiment <b>${actionLabel}</b> l'article "${a.name}" ?`,
+            header: 'Changement de statut',
+            icon: nextState ? 'pi pi-check-circle' : 'pi pi-power-off',
+            acceptLabel: 'Confirmer',
+            rejectLabel: 'Annuler',
+            acceptButtonStyleClass: nextState ? 'p-button-success' : 'p-button-warning',
+
+            accept: () => {
+                this.articleService.update(a.id, { is_active: nextState } as any).subscribe({
+                    next: () => {
+                        this.load();
+                        this.messageService.add({
+                            severity: nextState ? 'success' : 'info',
+                            summary: 'Statut mis à jour',
+                            detail: `L'article "${a.name}" a été ${nextState ? 'activé' : 'désactivé'}.`,
+                            life: 2000
+                        });
+                    },
+                    error: () => {
+                        this.messageService.add({
+                            severity: 'error',
+                            summary: 'Erreur',
+                            detail: 'Impossible de changer le statut.'
+                        });
+                    }
+                });
+            }
+        });
     }
 }

@@ -1,16 +1,22 @@
 <div class="page">
+    <p-toast></p-toast>
+    <p-confirmDialog></p-confirmDialog>
+
+    <!-- ── Header ─────────────────────────────────────────────────────────── -->
     <div class="page-header">
         <div>
             <h1>Clients</h1>
-            <p class="subtitle">{{ total() }} clients enregistrés</p>
+            <p class="subtitle">{{ total() }} client(s) enregistré(s)</p>
         </div>
-        <a routerLink="/clients/new" class="btn-primary">+ Nouveau client</a>
+        <a *ngIf="auth.can('clients.create')"
+           routerLink="/clients/new"
+           class="btn-primary">+ Nouveau client</a>
     </div>
 
-    <!-- Filters -->
+    <!-- ── Filtres ────────────────────────────────────────────────────────── -->
     <div class="filters">
         <input class="search-input" [(ngModel)]="search" (ngModelChange)="onSearch()"
-               placeholder="🔍 Rechercher un client..." />
+               placeholder="🔍 Nom, téléphone, entreprise..." />
         <select [(ngModel)]="statusFilter" (ngModelChange)="load()" class="filter-select">
             <option value="">Tous les statuts</option>
             <option value="active">Actif</option>
@@ -18,63 +24,100 @@
         </select>
         <select [(ngModel)]="typeFilter" (ngModelChange)="load()" class="filter-select">
             <option value="">Tous les types</option>
-            <option value="company">Entreprise</option>
             <option value="individual">Particulier</option>
+            <option value="company">Entreprise</option>
         </select>
     </div>
 
-    <!-- Table -->
+    <!-- ── Table ──────────────────────────────────────────────────────────── -->
     <div class="table-card">
         <div class="loading-bar" *ngIf="loading()"></div>
         <table>
             <thead>
             <tr>
                 <th>Client</th>
-                <th>Contact</th>
+                <th>Téléphone</th>
                 <th>Ville</th>
-                <th>Type</th>
-                <th>Propriétés</th>
-                <th>Contrats</th>
+                <th>Groupe</th>
+                <th>Commandes</th>
                 <th>Statut</th>
                 <th>Actions</th>
             </tr>
             </thead>
             <tbody>
             <tr *ngFor="let c of clients()">
+
+                <!-- Nom + initiales -->
                 <td>
-                    <div class="client-name">{{ c.display_name || c.company_name }}</div>
-                    <div class="client-email">{{ c.email }}</div>
+                    <div class="client-cell">
+                        <div class="avatar">{{ initials(c) }}</div>
+                        <div class="client-info">
+                            <div class="client-name">{{ fullName(c) }}</div>
+                            <div class="client-email">{{ c.email }}</div>
+                        </div>
+                    </div>
                 </td>
-                <td>{{ c.contact_first_name }} {{ c.contact_last_name }}</td>
-                <td>{{ c.city }}</td>
+
+                <!-- Téléphone -->
                 <td>
-            <span class="tag" [class.tag-company]="c.type === 'company'">
-              {{ c.type === 'company' ? 'Entreprise' : 'Particulier' }}
-            </span>
+                    <a [href]="'tel:' + c.phone" class="phone-link">{{ c.phone }}</a>
+                    <div class="text-muted" *ngIf="c.mobile && c.mobile !== c.phone">{{ c.mobile }}</div>
                 </td>
-                <td class="center">{{ c.properties_count ?? '—' }}</td>
-                <td class="center">{{ c.contracts_count ?? '—' }}</td>
+
+                <!-- Ville -->
+                <td>{{ c.city || '—' }}</td>
+
+                <!-- Groupe tarifaire -->
                 <td>
-            <span class="badge" [class.badge-active]="c.status === 'active'"
-                  [class.badge-inactive]="c.status !== 'active'">
+                    <span class="group-badge" *ngIf="c.client_group">{{ c.client_group.name }}</span>
+                    <span class="text-muted" *ngIf="!c.client_group">Standard</span>
+                </td>
+
+                <!-- Nombre de commandes -->
+                <td class="center">
+                    <span class="orders-count" *ngIf="c.orders_count !== undefined && c.orders_count !== null">
+  {{ c.orders_count }}
+</span>
+                    <span class="text-muted" *ngIf="c.orders_count === undefined || c.orders_count === null">—</span>
+                </td>
+
+                <!-- Statut -->
+                <td>
+            <span class="badge" [ngClass]="c.status === 'active' ? 'badge-active' : 'badge-inactive'">
               {{ c.status === 'active' ? 'Actif' : 'Inactif' }}
             </span>
                 </td>
+
+                <!-- Actions -->
                 <td>
                     <div class="actions">
-                        <a [routerLink]="['/clients', c.id, 'edit']" class="btn-icon" title="Modifier">✏️</a>
-                        <button class="btn-icon danger" (click)="deleteClient(c)" title="Supprimer">🗑️</button>
+                        <!-- Voir — nécessite clients.view -->
+                        <a *ngIf="auth.can('clients.view')"
+                           [routerLink]="['/clients', c.id]"
+                           class="btn-icon" title="Voir">👁️</a>
+
+                        <!-- Modifier — nécessite clients.edit -->
+                        <a *ngIf="auth.can('clients.edit')"
+                           [routerLink]="['/clients', c.id, 'edit']"
+                           class="btn-icon" title="Modifier">✏️</a>
+
+                        <!-- Supprimer — nécessite clients.delete -->
+                        <button *ngIf="auth.can('clients.delete')"
+                                class="btn-icon danger"
+                                (click)="deleteClient(c)"
+                                title="Supprimer">🗑️</button>
                     </div>
                 </td>
             </tr>
+
             <tr *ngIf="!loading() && !clients().length">
-                <td colspan="8" class="empty">Aucun client trouvé</td>
+                <td colspan="7" class="empty">Aucun client trouvé</td>
             </tr>
             </tbody>
         </table>
     </div>
 
-    <!-- Pagination -->
+    <!-- ── Pagination ─────────────────────────────────────────────────────── -->
     <div class="pagination" *ngIf="lastPage() > 1">
         <button [disabled]="page() === 1" (click)="goPage(page() - 1)">← Précédent</button>
         <span>Page {{ page() }} / {{ lastPage() }}</span>

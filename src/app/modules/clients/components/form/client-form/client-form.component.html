@@ -1,68 +1,106 @@
 <div class="page">
+    <p-toast></p-toast>
+    <p-confirmDialog></p-confirmDialog>
+
+    <!-- ── Header ─────────────────────────────────────────────────────────── -->
     <div class="page-header">
-        <a routerLink="/clients" class="back-link">← Clients</a>
-        <h1>{{ isEdit ? 'Modifier le client' : 'Nouveau client' }}</h1>
+        <div class="header-left">
+            <a routerLink="/clients" class="back-link">← Clients</a>
+            <h1>{{ isEdit ? 'Modifier le client' : 'Nouveau client' }}</h1>
+        </div>
     </div>
 
     <form [formGroup]="form" (ngSubmit)="onSubmit()" class="form-layout">
 
-        <!-- Type de client -->
+        <!-- ── Type de client ─────────────────────────────────────────────── -->
         <div class="form-card">
             <h3>Type de client</h3>
             <div class="type-toggle">
-                <label class="toggle-opt" [class.selected]="form.get('type')?.value === 'company'">
-                    <input type="radio" formControlName="type" value="company" hidden />
-                    🏢 Entreprise
-                </label>
                 <label class="toggle-opt" [class.selected]="form.get('type')?.value === 'individual'">
                     <input type="radio" formControlName="type" value="individual" hidden />
                     👤 Particulier
+                </label>
+                <label class="toggle-opt" [class.selected]="form.get('type')?.value === 'company'">
+                    <input type="radio" formControlName="type" value="company" hidden />
+                    🏢 Entreprise
                 </label>
             </div>
         </div>
 
         <div class="form-cols">
+
+            <!-- ── Colonne gauche ──────────────────────────────────────────── -->
             <div class="form-col">
                 <div class="form-card">
                     <h3>Informations du contact</h3>
 
+                    <!-- Raison sociale (entreprise seulement) -->
                     <div class="form-group" *ngIf="form.get('type')?.value === 'company'">
                         <label>Raison sociale</label>
-                        <input formControlName="company_name" placeholder="ACME Corporation" />
+                        <input formControlName="company_name" placeholder="SONAPOST, Hôtel Laïco..." />
                     </div>
 
+                    <!-- Prénom + Nom -->
                     <div class="form-row">
                         <div class="form-group">
                             <label>Prénom *</label>
-                            <input formControlName="contact_first_name" placeholder="Jean" />
+                            <input formControlName="contact_first_name" placeholder="Karim" />
+                            <span class="field-error" *ngIf="form.get('contact_first_name')?.invalid && form.get('contact_first_name')?.touched">
+                Champ requis
+              </span>
                         </div>
                         <div class="form-group">
                             <label>Nom *</label>
-                            <input formControlName="contact_last_name" placeholder="Dupont" />
+                            <input formControlName="contact_last_name" placeholder="Ouedraogo" />
+                            <span class="field-error" *ngIf="form.get('contact_last_name')?.invalid && form.get('contact_last_name')?.touched">
+                Champ requis
+              </span>
                         </div>
                     </div>
 
+                    <!-- Téléphone + Mobile -->
                     <div class="form-row">
                         <div class="form-group">
-                            <label>Email *</label>
-                            <input type="email" formControlName="email" placeholder="contact@acme.fr" />
+                            <label>Téléphone *</label>
+                            <input formControlName="phone" placeholder="70 00 00 00" />
+                            <span class="field-error" *ngIf="form.get('phone')?.invalid && form.get('phone')?.touched">
+                Champ requis
+              </span>
                         </div>
                         <div class="form-group">
-                            <label>Téléphone *</label>
-                            <input formControlName="phone" placeholder="01 23 45 67 89" />
+                            <label>Mobile</label>
+                            <input formControlName="mobile" placeholder="76 00 00 00" />
                         </div>
                     </div>
 
+                    <!-- Email -->
                     <div class="form-group">
-                        <label>Mobile</label>
-                        <input formControlName="mobile" placeholder="06 00 00 00 00" />
+                        <label>Email</label>
+                        <input type="email" formControlName="email" placeholder="karim@exemple.com" />
+                        <span class="field-error" *ngIf="form.get('email')?.invalid && form.get('email')?.touched">
+              Email invalide
+            </span>
                     </div>
 
+                    <!-- IFU / TVA (entreprise) -->
                     <div class="form-group" *ngIf="form.get('type')?.value === 'company'">
-                        <label>Numéro TVA</label>
-                        <input formControlName="tax_number" placeholder="FR 00 000000000" />
+                        <label>Numéro IFU / TVA</label>
+                        <input formControlName="tax_number" placeholder="0000000X" />
                     </div>
 
+                    <!-- Groupe tarifaire -->
+                    <div class="form-group">
+                        <label>Groupe tarifaire</label>
+                        <select formControlName="client_group_id">
+                            <option [ngValue]="null">— Standard (aucun groupe) —</option>
+                            <option *ngFor="let g of groups()" [ngValue]="g.id">
+                                {{ g.name }}
+                                <span *ngIf="g.default_discount > 0"> (−{{ g.default_discount }}%)</span>
+                            </option>
+                        </select>
+                    </div>
+
+                    <!-- Statut -->
                     <div class="form-group">
                         <label>Statut</label>
                         <div class="radio-group">
@@ -79,44 +117,56 @@
                 </div>
             </div>
 
+            <!-- ── Colonne droite ──────────────────────────────────────────── -->
             <div class="form-col">
                 <div class="form-card">
-                    <h3>Adresse de facturation</h3>
+                    <h3>📍 Adresse</h3>
                     <div class="form-group">
-                        <label>Adresse *</label>
-                        <input formControlName="billing_address" placeholder="15 rue de la Paix" />
+                        <label>Adresse / Secteur</label>
+                        <input formControlName="billing_address" placeholder="Secteur 15, Ouagadougou" />
                     </div>
                     <div class="form-row">
                         <div class="form-group">
-                            <label>Code postal *</label>
-                            <input formControlName="postal_code" placeholder="75001" />
+                            <label>Ville</label>
+                            <input formControlName="city" placeholder="Ouagadougou" />
                         </div>
                         <div class="form-group">
-                            <label>Ville *</label>
-                            <input formControlName="city" placeholder="Paris" />
+                            <label>Code postal / BP</label>
+                            <input formControlName="postal_code" placeholder="01 BP 1234" />
                         </div>
                     </div>
                     <div class="form-group">
                         <label>Pays</label>
-                        <input formControlName="country" placeholder="France" />
+                        <input formControlName="country" placeholder="Burkina Faso" />
+                    </div>
+                </div>
+
+                <!-- Points de fidélité (édition seulement) -->
+                <div class="form-card" *ngIf="isEdit">
+                    <h3>🎖️ Fidélité</h3>
+                    <div class="form-group">
+                        <label>Points de fidélité</label>
+                        <input type="number" formControlName="loyalty_points" min="0" />
                     </div>
                 </div>
 
                 <div class="form-card">
-                    <h3>Notes</h3>
+                    <h3>📝 Notes internes</h3>
                     <div class="form-group">
             <textarea formControlName="notes" rows="4"
-                      placeholder="Informations complémentaires, préférences, historique..."></textarea>
+                      placeholder="Préférences, remarques, historique..."></textarea>
                     </div>
                 </div>
             </div>
         </div>
 
+        <!-- ── Actions ────────────────────────────────────────────────────── -->
         <div class="form-actions">
             <a routerLink="/clients" class="btn-cancel">Annuler</a>
             <button type="submit" class="btn-submit" [disabled]="form.invalid || saving()">
-                {{ saving() ? 'Enregistrement...' : (isEdit ? 'Modifier' : 'Créer le client') }}
+                {{ saving() ? 'Enregistrement...' : (isEdit ? '💾 Modifier' : '✅ Créer le client') }}
             </button>
         </div>
+
     </form>
 </div>

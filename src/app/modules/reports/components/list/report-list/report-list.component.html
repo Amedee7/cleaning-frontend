@@ -1,13 +1,14 @@
-<div class="page">
-    <p-confirmDialog></p-confirmDialog>
+<p-confirmDialog></p-confirmDialog>
 
+<div class="page">
     <div class="page-header">
         <div>
             <h1>📊 Rapports journaliers</h1>
             <p class="subtitle">Suivi de caisse et activité</p>
         </div>
         <button class="btn-primary" (click)="generateToday()" [disabled]="generating()">
-            {{ generating() ? '⏳ Génération...' : '🔄 Générer rapport du jour' }}
+            <i class="pi pi-refresh" [class.pi-spin]="generating()"></i>
+            {{ generating() ? 'Génération...' : 'Générer rapport du jour' }}
         </button>
     </div>
 

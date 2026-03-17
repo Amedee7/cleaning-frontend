@@ -38,7 +38,7 @@ export class CurrentUserService {
   // Vérifie une permission
   can(key: string): boolean {
     const user = this._user();
-    if (user?.role?.slug === 'super_admin') return true;
+    if (user?.role?.name === 'super_admin') return true;
     return this._permissions().includes(key);
   }
 

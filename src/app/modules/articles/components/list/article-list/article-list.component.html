@@ -1,10 +1,15 @@
 <div class="page">
+    <p-toast></p-toast>
+    <p-confirmDialog></p-confirmDialog>
     <div class="page-header">
         <div>
             <h1>👔 Articles</h1>
             <p class="subtitle">{{ total() }} articles dans le catalogue</p>
         </div>
-        <a routerLink="/articles/new" class="btn-primary">+ Nouvel article</a>
+        <!-- Créer — nécessite articles.create -->
+        <a *ngIf="auth.can('articles.create')"
+           routerLink="/articles/new"
+           class="btn-primary">+ Nouvel article</a>
     </div>
 
     <!-- Catégories -->
@@ -66,8 +71,15 @@
             <div class="card-footer">
                 <span class="delay">⏱ {{ a.processing_days }}j</span>
                 <div class="actions">
-                    <a [routerLink]="['/articles', a.id, 'edit']" class="btn-icon">✏️</a>
-                    <button class="btn-icon danger" (click)="toggle(a)">
+                    <!-- Modifier — nécessite articles.edit -->
+                    <a *ngIf="auth.can('articles.edit')"
+                       [routerLink]="['/articles', a.id, 'edit']"
+                       class="btn-icon">✏️</a>
+
+                    <!-- Activer/Désactiver — nécessite articles.edit -->
+                    <button *ngIf="auth.can('articles.edit')"
+                            class="btn-icon danger"
+                            (click)="toggle(a)">
                         {{ a.is_active ? '🔒' : '🔓' }}
                     </button>
                 </div>
@@ -77,7 +89,10 @@
         <div class="empty-state" *ngIf="!articles().length">
             <div class="empty-icon">👔</div>
             <p>Aucun article trouvé</p>
-            <a routerLink="/articles/new" class="btn-primary">Ajouter un article</a>
+            <!-- Créer dans empty state aussi -->
+            <a *ngIf="auth.can('articles.create')"
+               routerLink="/articles/new"
+               class="btn-primary">Ajouter un article</a>
         </div>
     </div>
 

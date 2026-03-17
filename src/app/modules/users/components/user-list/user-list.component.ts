@@ -4,15 +4,21 @@ import {UserService} from "../../../../core/services/user.services";
 import {CommonModule, DatePipe} from "@angular/common";
 import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
+import {ConfirmationService, MessageService} from "primeng/api";
+import { ConfirmDialogModule } from 'primeng/confirmdialog';
+import { ToastModule } from 'primeng/toast';
+import {AuthService} from "../../../../core/services/auth.service";
+
 
 @Component({
   selector: 'app-user-list',
   standalone: true,
-    imports: [CommonModule, DatePipe, RouterLink, FormsModule],
+    imports: [CommonModule, DatePipe, RouterLink, FormsModule, ToastModule, ConfirmDialogModule],
+    providers: [ConfirmationService, MessageService],
     templateUrl: './user-list.component.html',
   styleUrl: './user-list.component.scss'
 })
-    export class UserListComponent implements OnInit {
+export class UserListComponent implements OnInit {
     users      = signal<AppUser[]>([]);
     roles      = signal<Role[]>([]);
     loading    = signal(false);
@@ -26,7 +32,12 @@ import { FormsModule } from '@angular/forms';
 
     readonly ROLE_COLORS = ROLE_COLORS;
 
-    constructor(private userService: UserService) {}
+    constructor(
+        private userService: UserService,
+        private confirmationService: ConfirmationService,
+        private messageService: MessageService,
+        public auth: AuthService,
+    ) {}
 
     ngOnInit(): void {
         this.userService.getRoles().subscribe(r => this.roles.set(r));
@@ -37,7 +48,7 @@ import { FormsModule } from '@angular/forms';
         this.loading.set(true);
         this.userService.getAll({
             page: this.page(), search: this.search,
-            role_id: this.roleFilter ?? '', is_active: this.activeFilter,
+            role_id: this.roleFilter ?? '', status: this.activeFilter,
         }).subscribe({
             next: (res: any) => {
                 this.users.set(res.data);
@@ -54,19 +65,44 @@ import { FormsModule } from '@angular/forms';
         this.searchTimer = setTimeout(() => { this.page.set(1); this.load(); }, 400);
     }
 
-    setRole(id: number | null): void {
-        this.roleFilter = id;
-        this.page.set(1);
-        this.load();
-    }
-
+    setRole(id: number | null): void { this.roleFilter = id; this.page.set(1); this.load(); }
     goPage(p: number): void          { this.page.set(p); this.load(); }
 
     toggleActive(u: AppUser): void {
-        this.userService.update(u.id, { active: !u.status }).subscribe(() => this.load());
+        const newStatus   = u.status === 'active' ? 'inactive' : 'active';
+        const action      = newStatus === 'active' ? 'réactiver' : 'désactiver';
+        const fullName    = `${u.first_name} ${u.last_name}`.trim();
+
+        this.confirmationService.confirm({
+            message: `Voulez-vous <b>${action}</b> le compte de <b>${fullName}</b> ?`,
+            header: newStatus === 'active' ? 'Réactivation du compte' : 'Désactivation du compte',
+            icon: newStatus === 'active' ? 'pi pi-check-circle' : 'pi pi-ban',
+            acceptLabel: `Oui, ${action}`,
+            rejectLabel: 'Annuler',
+            acceptButtonStyleClass: newStatus === 'active' ? 'p-button-success p-button-text' : 'p-button-danger p-button-text',
+            rejectButtonStyleClass: 'p-button-secondary p-button-text',
+            accept: () => {
+                this.userService.update(u.id, { status: newStatus }).subscribe({
+                    next: () => {
+                        this.messageService.add({
+                            severity: newStatus === 'active' ? 'success' : 'warn',
+                            summary:  newStatus === 'active' ? 'Compte réactivé' : 'Compte désactivé',
+                            detail:   `${fullName} est maintenant ${newStatus === 'active' ? 'actif' : 'inactif'}.`,
+                            life: 3000,
+                        });
+                        this.load();
+                    },
+                    error: () => this.messageService.add({
+                        severity: 'error',
+                        summary:  'Erreur',
+                        detail:   'Impossible de modifier le statut.',
+                    }),
+                });
+            },
+        });
     }
 
-    roleColor(first_name: string): string  { return ROLE_COLORS[first_name] ?? '#5a5f72'; }
-    roleLabel(first_name: string): string  { return ROLE_LABELS[first_name] ?? first_name; }
-    avatarBg(u: AppUser): string { return this.roleColor(u.role?.name ?? ''); }
+    roleColor(slug: string): string  { return ROLE_COLORS[slug] ?? '#5a5f72'; }
+    roleLabel(slug: string): string  { return ROLE_LABELS[slug] ?? slug; }
+    avatarBg(u: AppUser): string     { return this.roleColor(u.role?.name ?? ''); }
 }

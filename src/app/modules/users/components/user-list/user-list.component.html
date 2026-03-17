@@ -1,4 +1,6 @@
 <div class="page">
+    <p-toast></p-toast>
+    <p-confirmDialog></p-confirmDialog>
     <div class="page-header">
         <div>
             <h1>👥 Utilisateurs</h1>
@@ -28,8 +30,8 @@
                placeholder="🔍 Nom, email, téléphone..." />
         <select [(ngModel)]="activeFilter" (ngModelChange)="load()" class="filter-select">
             <option value="">Tous</option>
-            <option value="true">Actifs</option>
-            <option value="false">Inactifs</option>
+            <option value="active">Actifs</option>
+            <option value="inactive">Inactifs</option>
         </select>
     </div>
 
@@ -55,7 +57,7 @@
                             {{ u.first_name.charAt(0).toUpperCase() }}
                         </div>
                         <div>
-                            <div class="user-name">{{ u.first_name }} {{ u.last_name }}</div>
+                            <div class="user-name">{{ u.first_name }}</div>
                             <div class="user-email">{{ u.email }}</div>
                         </div>
                     </div>
@@ -75,12 +77,17 @@
                 </td>
                 <td>
                     <div class="actions">
-                        <a [routerLink]="['/users', u.id, 'edit']" class="btn-icon" title="Modifier">✏️</a>
-                        <a [routerLink]="['/users', u.id, 'permissions']" class="btn-icon perms"
-                           title="Habilitations">🔑</a>
-                        <button class="btn-icon" [class.danger]="u.is_active"
+                        <a *ngIf="auth.can('users.edit')"
+                           [routerLink]="['/users', u.id, 'edit']"
+                           class="btn-icon" title="Modifier">✏️</a>
+
+                        <a *ngIf="auth.can('users.permissions')"
+                           [routerLink]="['/users', u.id, 'permissions']"
+                           class="btn-icon perms" title="Habilitations">🔑</a>
+
+                        <button *ngIf="auth.can('users.edit') && u.id !== auth.user()?.id"
+                                class="btn-icon" [class.danger]="u.status === 'active'"
                                 (click)="toggleActive(u)" title="Activer/Désactiver">
-                            {{ u.is_active ? '🔒' : '🔓' }}
                         </button>
                     </div>
                 </td>

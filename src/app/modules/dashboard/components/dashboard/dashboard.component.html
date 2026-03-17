@@ -4,10 +4,14 @@
             <h1>🧺 Tableau de bord</h1>
             <p class="subtitle">{{ today | date:'EEEE d MMMM yyyy' }}</p>
         </div>
-        <a routerLink="/orders/new" class="btn-primary">+ Nouvelle réception</a>
+        <!-- Nouvelle réception — nécessite orders.create -->
+        <a *ngIf="auth.can('orders.create')"
+           routerLink="/orders/new"
+           class="btn-primary">+ Nouvelle réception</a>
     </div>
 
-    <div class="kpi-grid" *ngIf="stats()">
+    <!-- KPI — visibles si orders.view -->
+    <div class="kpi-grid" *ngIf="stats() && auth.can('orders.view')">
         <div class="kpi-card green">
             <div class="kpi-icon">📦</div>
             <div class="kpi-value">{{ stats()!.orders_today }}</div>
@@ -18,7 +22,8 @@
             <div class="kpi-value">{{ stats()!.items_today }}</div>
             <div class="kpi-label">Articles réceptionnés</div>
         </div>
-        <div class="kpi-card purple">
+        <!-- Recettes — nécessite reports.view -->
+        <div class="kpi-card purple" *ngIf="auth.can('reports.view')">
             <div class="kpi-icon">💰</div>
             <div class="kpi-value">{{ stats()!.revenue_today | number:'1.0-0' }} FCFA</div>
             <div class="kpi-label">Recettes du jour</div>
@@ -30,8 +35,8 @@
         </div>
     </div>
 
-    <!-- Statuts en cours -->
-    <div class="status-row" *ngIf="stats()">
+    <!-- Statuts — nécessite orders.view -->
+    <div class="status-row" *ngIf="stats() && auth.can('orders.view')">
         <div class="status-card" routerLink="/orders" [queryParams]="{status:'pending'}">
             <span class="status-dot dot-pending"></span>
             <span class="status-count">{{ stats()!.pending_orders }}</span>
@@ -49,14 +54,15 @@
         </div>
     </div>
 
-    <div class="bottom-grid">
-        <!-- Prêtes à récupérer -->
-        <div class="list-card">
+    <div class="bottom-grid" *ngIf="stats()">
+
+        <!-- Prêtes à récupérer — nécessite orders.view -->
+        <div class="list-card" *ngIf="auth.can('orders.view')">
             <div class="list-header">
                 <h3>✅ Prêtes à récupérer</h3>
                 <a routerLink="/orders" [queryParams]="{status:'ready'}" class="see-all">Voir tout</a>
             </div>
-            <div class="order-list" *ngIf="stats()">
+            <div class="order-list">
                 <div class="order-row" *ngFor="let o of stats()!.ready_list"
                      [routerLink]="['/orders', o.id]">
                     <div class="order-ref">{{ o.receipt_number }}</div>
@@ -70,13 +76,13 @@
             </div>
         </div>
 
-        <!-- En retard -->
-        <div class="list-card">
+        <!-- En retard — nécessite orders.view -->
+        <div class="list-card" *ngIf="auth.can('orders.view')">
             <div class="list-header">
                 <h3>🔴 En retard</h3>
                 <a routerLink="/orders" [queryParams]="{late:'true'}" class="see-all">Voir tout</a>
             </div>
-            <div class="order-list" *ngIf="stats()">
+            <div class="order-list">
                 <div class="order-row late" *ngFor="let o of stats()!.late_list"
                      [routerLink]="['/orders', o.id]">
                     <div class="order-ref">{{ o.receipt_number }}</div>
@@ -90,8 +96,8 @@
             </div>
         </div>
 
-        <!-- Ventilation paiements -->
-        <div class="list-card payment-card" *ngIf="stats()">
+        <!-- Ventilation paiements — nécessite reports.view -->
+        <div class="list-card payment-card" *ngIf="auth.can('reports.view')">
             <div class="list-header">
                 <h3>💳 Recettes du jour</h3>
             </div>

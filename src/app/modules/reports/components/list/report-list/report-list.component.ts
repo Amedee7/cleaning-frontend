@@ -48,20 +48,29 @@ export class ReportListComponent implements OnInit {
 
     // ── Génère le rapport du jour (ou rafraîchit s'il existe) ──────────────────
     generateToday(): void {
-        this.generating.set(true);
-        this.reportService.generate().subscribe({
-            next: (r) => {
-                console.log('✅ rapport reçu :', r);        // ← ajouter
-                console.log('todayReport avant :', this.todayReport()); // ← ajouter
-                this.todayReport.set(r);
-                console.log('todayReport après :', this.todayReport()); // ← ajouter
-                this.generating.set(false);
-                this.loadHistory();
-            },
-            error: (err) => {
-                console.error('❌ erreur generate :', err);  // ← ajouter
-                this.generating.set(false);
-            },
+        this.confirmationService.confirm({
+            message: 'Voulez-vous générer ou rafraîchir le rapport de caisse pour aujourd\'hui ?',
+            header: 'Génération du rapport',
+            icon: 'pi pi-info-circle',
+            acceptLabel: 'Confirmer',
+            rejectLabel: 'Annuler',
+            acceptButtonStyleClass: 'p-button-info',
+            rejectButtonStyleClass: 'p-button-outlined',
+
+            accept: () => {
+                this.generating.set(true);
+                this.reportService.generate().subscribe({
+                    next: (r) => {
+                        this.todayReport.set(r);
+                        this.generating.set(false);
+                        this.loadHistory();
+                    },
+                    error: (err) => {
+                        console.error('Erreur lors de la génération :', err);
+                        this.generating.set(false);
+                    },
+                });
+            }
         });
     }
 
@@ -87,8 +96,10 @@ export class ReportListComponent implements OnInit {
             message: 'Clôturer la caisse de ce jour ? Cette action est irréversible.',
             header: 'Confirmation',
             icon: 'pi pi-exclamation-triangle',
-            acceptLabel: 'Oui',
+            acceptLabel: 'Oui, Cloturer',
             rejectLabel: 'Annuler',
+            acceptButtonStyleClass: 'btn btn-success',
+            rejectButtonStyleClass: 'btn btn-outlined',
 
             accept: () => {
                 this.closing.set(true);

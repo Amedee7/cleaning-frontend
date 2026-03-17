@@ -1,99 +1,99 @@
-<div class="page" *ngIf="user()">
-                    <div class="page-header">
-                        <div>
-                            <a routerLink="/users" class="back-link">← Utilisateurs</a>
-                            <div class="header-title">
-                                <div class="avatar" [style.background]="roleColor(user()!.role?.name || '')">
-                                    {{ user()!.first_name }}
-                                </div>
+<ng-container *ngIf="user() as u; else loadingTpl">
+    <div class="page">
+        <div class="page-header">
+            <div>
+                <a routerLink="/users" class="back-link">← Utilisateurs</a>
+                <div class="header-title">
+                    <div class="user-avatar"
+                         [style.background]="roleColor(u.role?.name || '')">
+                        {{ initials() }}
+                    </div>
+                    <div>
+                        <h1>{{ fullName() }}</h1>
+                        <span class="role-badge"
+                              [style.background]="roleColor(u.role?.name || '') + '22'"
+                              [style.color]="roleColor(u.role?.name || '')">
+                        {{ roleLabel(u.role?.name || '') }}
+                    </span>
+                    </div>
+                </div>
+            </div>
+            <div class="header-actions">
+                <button class="btn-reset" (click)="resetToRole()">
+                    🔄 Réinitialiser au rôle
+                </button>
+                <button class="btn-save" (click)="save()" [disabled]="saving()">
+                    {{ saving() ? 'Enregistrement...' : '💾 Enregistrer' }}
+                </button>
+            </div>
+        </div>
 
-                                <div>
-                                    <h1>{{ user()!.first_name }}</h1>
-                                    <span class="role-badge"
-                                          [style.background]="roleColor(user()!.role?.name || '') + '22'"
-                                          [style.color]="roleColor(user()!.role?.name || '')">
-              {{ roleLabel(user()!.role?.name || '') }}
-            </span>
-                                </div>
+        <!-- Légende -->
+        <div class="legend">
+            <div class="legend-item"><span class="dot dot-role"></span> Accordé par le rôle</div>
+            <div class="legend-item"><span class="dot dot-added"></span> Ajouté manuellement</div>
+            <div class="legend-item"><span class="dot dot-removed"></span> Retiré manuellement</div>
+            <div class="legend-count">
+                {{ effectiveCount() }} / {{ totalCount() }} permissions actives
+            </div>
+        </div>
+
+        <!-- Groupes de permissions -->
+        <div class="perm-groups">
+            <div class="perm-group" *ngFor="let group of groupKeys()">
+                <div class="group-header">
+                    <h3>{{ group }}</h3>
+                    <div class="group-actions">
+                        <button class="group-btn" (click)="grantGroup(group)">Tout accorder</button>
+                        <button class="group-btn deny" (click)="denyGroup(group)">Tout retirer</button>
+                    </div>
+                </div>
+
+                <div class="perm-list">
+                    <div class="perm-row" *ngFor="let perm of permsByGroup()[group]"
+                         [class.granted]="isGranted(perm.key)"
+                         [class.denied]="!isGranted(perm.key)">
+
+                        <div class="perm-toggle" (click)="toggle(perm.key)">
+                            <div class="toggle-track" [class.on]="isGranted(perm.key)">
+                                <div class="toggle-thumb"></div>
                             </div>
                         </div>
-                        <div class="header-actions">
-                            <button class="btn-reset" (click)="resetToRole()" title="Réinitialiser aux permissions du rôle">
-                                🔄 Réinitialiser
-                            </button>
-                            <button class="btn-save" (click)="save()" [disabled]="saving()">
-                                {{ saving() ? "Enregistrement..." : "💾 Enregistrer" }}
-                            </button>
+
+                        <div class="perm-info">
+                            <div class="perm-label">{{ perm.label }}</div>
+                            <div class="perm-key">{{ perm.key }}</div>
                         </div>
-                    </div>
 
-                    <!-- Légende -->
-                    <div class="legend">
-                        <div class="legend-item">
-                            <span class="dot dot-role"></span> Accordé par le rôle
-                        </div>
-                        <div class="legend-item">
-                            <span class="dot dot-added"></span> Ajouté manuellement
-                        </div>
-                        <div class="legend-item">
-                            <span class="dot dot-removed"></span> Retiré manuellement
-                        </div>
-                        <div class="legend-count">
-                            {{ effectiveCount() }} / {{ totalCount() }} permissions actives
-                        </div>
-                    </div>
-
-                    <!-- Groupes de permissions -->
-                    <div class="perm-groups">
-                        <div class="perm-group" *ngFor="let group of groupKeys()">
-                            <div class="group-header">
-                                <h3>{{ group }}</h3>
-                                <div class="group-actions">
-                                    <button class="group-btn" (click)="grantGroup(group)">Tout accorder</button>
-                                    <button class="group-btn deny" (click)="denyGroup(group)">Tout retirer</button>
-                                </div>
-                            </div>
-
-                            <div class="perm-list">
-                                <div class="perm-row" *ngFor="let perm of permsByGroup()[group]"
-                                     [class.granted]="isGranted(perm.key)"
-                                     [class.denied]="!isGranted(perm.key)">
-
-                                    <!-- Toggle -->
-                                    <div class="perm-toggle" (click)="toggle(perm.key)">
-                                        <div class="toggle-track" [class.on]="isGranted(perm.key)">
-                                            <div class="toggle-thumb"></div>
-                                        </div>
-                                    </div>
-
-                                    <!-- Info -->
-                                    <div class="perm-info">
-                                        <div class="perm-label">{{ perm.label }}</div>
-                                        <div class="perm-key">{{ perm.key }}</div>
-                                    </div>
-
-                                    <!-- Origine -->
-                                    <div class="perm-origin">
-                                        <span *ngIf="isOverrideAdded(perm.key)"   class="origin-badge added">+ Ajouté</span>
-                                        <span *ngIf="isOverrideRemoved(perm.key)"  class="origin-badge removed">- Retiré</span>
-                                        <span *ngIf="isFromRole(perm.key) && !hasOverride(perm.key)"
-                                              class="origin-badge role">Rôle</span>
-                                        <span *ngIf="!isFromRole(perm.key) && !hasOverride(perm.key)"
-                                              class="origin-badge none">—</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Sticky save bar -->
-                    <div class="save-bar" *ngIf="isDirty()">
-                        <span>⚠️ Modifications non enregistrées</span>
-                        <div class="save-bar-actions">
-                            <button class="btn-discard" (click)="discard()">Annuler</button>
-                            <button class="btn-save-bar" (click)="save()" [disabled]="saving()">
-                                {{ saving() ? "..." : "Enregistrer" }}
-                            </button>
+                        <div class="perm-origin">
+                            <span *ngIf="isOverrideAdded(perm.key)"   class="origin-badge added">+ Ajouté</span>
+                            <span *ngIf="isOverrideRemoved(perm.key)" class="origin-badge removed">− Retiré</span>
+                            <span *ngIf="isFromRole(perm.key) && !hasOverride(perm.key)"
+                                  class="origin-badge role">Rôle</span>
+                            <span *ngIf="!isFromRole(perm.key) && !hasOverride(perm.key)"
+                                  class="origin-badge none">—</span>
                         </div>
                     </div>
                 </div>
+            </div>
+        </div>
+
+        <!-- Barre sticky -->
+        <div class="save-bar" *ngIf="isDirty()">
+            <span>⚠️ Modifications non enregistrées</span>
+            <div class="save-bar-actions">
+                <button class="btn-discard" (click)="discard()">Annuler</button>
+                <button class="btn-save-bar" (click)="save()" [disabled]="saving()">
+                    {{ saving() ? '...' : 'Enregistrer' }}
+                </button>
+            </div>
+        </div>
+    </div>
+</ng-container>
+
+<ng-template #loadingTpl>
+    <div class="loading-state">
+        <div class="spinner"></div>
+        <p>Chargement...</p>
+    </div>
+</ng-template>

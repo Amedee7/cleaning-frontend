@@ -1,18 +1,27 @@
 import { Component, OnInit, signal } from '@angular/core';
-import { PressingSettingsService } from '../../../core/services/pressing.services';
+import {ArticleService, PressingSettingsService} from '../../../core/services/pressing.services';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
-
+import {CategoriesComponent} from "../../articles/components/categories/categories.component";
+import {ToastModule} from "primeng/toast";
+import {TabViewModule} from "primeng/tabview";
+import {DividerModule} from "primeng/divider";
+import {ConfirmDialogModule} from "primeng/confirmdialog";
+import {ConfirmationService, MessageService} from "primeng/api";
 
 
 @Component({
   selector: 'app-settings',
   standalone: true,
-    imports: [CommonModule, ReactiveFormsModule],
+    imports: [CommonModule, ReactiveFormsModule, CategoriesComponent, ToastModule, TabViewModule, DividerModule, ConfirmDialogModule],
+    providers: [MessageService, ConfirmationService],
   templateUrl: './settings.component.html',
   styleUrl: './settings.component.scss'
 })
     export class SettingsComponent implements OnInit {
+
+    activeTabIndex: number = 0;
+
     form = this.fb.group({
         shop_name:              [''],
         shop_address:           [''],
@@ -37,10 +46,22 @@ import { CommonModule } from '@angular/common';
     constructor(
         private fb: FormBuilder,
         private settingsService: PressingSettingsService,
+        private confirmationService: ConfirmationService,
+        private messageService: MessageService,
     ) {}
 
     ngOnInit(): void {
+        // Restaurer le tab sauvegardé
+        const savedTab = localStorage.getItem('settingActiveTab');
+        if (savedTab !== null) {
+            this.activeTabIndex = parseInt(savedTab);
+        }
         this.settingsService.get$().subscribe(s => this.form.patchValue(s as any));
+    }
+
+    onTabChange(event: any): void {
+        this.activeTabIndex = event.index;
+        localStorage.setItem('settingActiveTab', event.index.toString());
     }
 
     toggle(field: string): void {

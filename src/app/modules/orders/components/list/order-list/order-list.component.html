@@ -4,7 +4,10 @@
             <h1>🧾 Commandes</h1>
             <p class="subtitle">{{ total() }} commandes</p>
         </div>
-        <a routerLink="/orders/new" class="btn-primary">+ Nouvelle réception</a>
+        <!-- Nouvelle réception — nécessite orders.create -->
+        <a *ngIf="auth.can('orders.create')"
+           routerLink="/orders/new"
+           class="btn-primary">+ Nouvelle réception</a>
     </div>
 
     <!-- Filtres rapides statut -->
@@ -44,12 +47,12 @@
             <tr *ngFor="let o of orders()" [class.late-row]="o.is_late">
                 <td>
                     <a [routerLink]="['/orders', o.id]" class="receipt-link">{{ o.receipt_number }}</a>
-                    <span class="late-badge" *ngIf="o.is_late">⚠️ Retard</span>
+                    <span class="late-badge" *ngIf="o.is_late">Retard</span>
                 </td>
                 <td>
                     <div class="client-name">{{ o.client_display_name }}</div>
                     <div class="client-phone">{{ o.client_phone }}</div>
-                    <div class="client-ref" *ngIf="o.reference">📌 {{ o.reference }}</div>
+                    <div class="client-ref" *ngIf="o.reference">{{ o.reference }}</div>
                 </td>
                 <td class="center">
                     <span class="items-count">{{ o.total_items }}</span>
@@ -63,20 +66,26 @@
                     </div>
                 </td>
                 <td>
-            <span class="badge" [ngClass]="'pay-' + o.payment_status">
-              {{ paymentLabel(o.payment_status) }}
-            </span>
+                    <span class="badge" [ngClass]="'pay-' + o.payment_status">
+                        {{ paymentLabel(o.payment_status) }}
+                    </span>
                 </td>
                 <td>
-            <span class="badge" [ngClass]="'status-' + o.status">
-              {{ statusLabel(o.status) }}
-            </span>
+                    <span class="badge" [ngClass]="'status-' + o.status">
+                        {{ statusLabel(o.status) }}
+                    </span>
                 </td>
                 <td>
                     <div class="actions">
-                        <a [routerLink]="['/orders', o.id]" class="btn-icon" title="Voir">👁️</a>
-                        <button *ngIf="o.status === 'ready'" class="btn-icon deliver"
-                                (click)="deliver(o)" title="Marquer livré">✓</button>
+                        <!-- Voir — toujours visible si orders.view -->
+                        <a [routerLink]="['/orders', o.id]"
+                           class="btn-icon" title="Voir">👁️</a>
+
+                        <!-- Marquer livré — nécessite orders.status -->
+                        <button *ngIf="o.status === 'ready' && auth.can('orders.status')"
+                                class="btn-icon deliver"
+                                (click)="deliver(o)"
+                                title="Marquer livré">✓</button>
                     </div>
                 </td>
             </tr>
