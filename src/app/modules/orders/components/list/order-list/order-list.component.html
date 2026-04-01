@@ -1,13 +1,19 @@
 <div class="page">
+    <p-confirmDialog></p-confirmDialog>
+    <p-toast></p-toast>
+
+    <!-- Dans votre page de liste des commandes, ajoutez ce bouton -->
     <div class="page-header">
         <div>
             <h1>🧾 Commandes</h1>
             <p class="subtitle">{{ total() }} commandes</p>
         </div>
-        <!-- Nouvelle réception — nécessite orders.create -->
-        <a *ngIf="auth.can('orders.create')"
-           routerLink="/orders/new"
-           class="btn-primary">+ Nouvelle réception</a>
+        <div class="header-actions">
+            <a *ngIf="auth.can('orders.view')" routerLink="/orders/calendar" class="btn-calendar">
+                📅 Vue calendrier
+            </a>
+            <a *ngIf="auth.can('orders.create')" routerLink="/orders/new" class="btn-primary pulse">+ Nouvelle réception</a>
+        </div>
     </div>
 
     <!-- Filtres rapides statut -->

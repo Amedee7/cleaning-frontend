@@ -1,0 +1,109 @@
+<div class="calendar-page">
+    <!-- En-tête compact -->
+    <div class="calendar-header">
+        <div class="header-left">
+            <h1>📅 Calendrier</h1>
+            <span class="badge-orders">{{ orders().length }} commandes</span>
+        </div>
+
+        <div class="header-controls">
+            <div class="month-navigator">
+                <button class="nav-btn" (click)="previousPeriod()">←</button>
+                <span class="current-month">{{ currentPeriodLabel() }}</span>
+                <button class="nav-btn" (click)="nextPeriod()">→</button>
+            </div>
+
+            <button class="btn-today" (click)="goToToday()">Aujourd'hui</button>
+
+            <div class="view-toggle">
+                <button [class.active]="view === 'month'" (click)="setView('month')">Mois</button>
+                <button [class.active]="view === 'week'" (click)="setView('week')">Semaine</button>
+                <button [class.active]="view === 'day'" (click)="setView('day')">Jour</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Légende compacte -->
+    <div class="legend-compact">
+        <div class="legend-item" *ngFor="let status of statusList">
+            <span class="dot" [class]="status.class"></span>
+            <span>{{ status.label }}</span>
+        </div>
+    </div>
+
+    <!-- Vue Mois -->
+    <div class="month-view" *ngIf="view === 'month'">
+        <div class="weekdays">
+            <div *ngFor="let day of weekdays">{{ day }}</div>
+        </div>
+        <div class="calendar-grid">
+            <div class="calendar-day"
+                 *ngFor="let day of monthDays()"
+                 [class.other-month]="day.otherMonth"
+                 [class.today]="day.isToday"
+                 (click)="selectDate(day.date)">
+
+                <span class="day-number">{{ day.date | date:'d' }}</span>
+
+                <div class="day-events">
+                    <div class="event-dot"
+                         *ngFor="let event of day.events.slice(0, 3)"
+                         [class]="'dot-' + event.type"
+                         [title]="event.client_name + ' - ' + (event.date | date:'HH:mm')"
+                         [routerLink]="['/orders', event.id]">
+                    </div>
+                    <span class="event-count" *ngIf="day.events.length > 3">
+                        +{{ day.events.length - 3 }}
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Vue Semaine simplifiée -->
+    <div class="week-view" *ngIf="view === 'week'">
+        <div class="week-header">
+            <div class="day-col" *ngFor="let day of weekDays()">
+                <div class="day-name">{{ day.date | date:'EEE' }}</div>
+                <div class="day-num" [class.today]="day.isToday">{{ day.date | date:'d' }}</div>
+                <div class="day-events-mini">
+                    <div class="mini-event"
+                         *ngFor="let event of day.events.slice(0, 2)"
+                         [class]="'evt-' + event.type"
+                         [routerLink]="['/orders', event.id]"
+                         title="{{ event.client_name }} - {{ event.date | date:'HH:mm' }}">
+                        <span class="evt-time">{{ event.date | date:'HH:mm' }}</span>
+                        <span class="evt-name">{{ event.client_name | slice:0:8 }}</span>
+                    </div>
+                    <span class="more-events" *ngIf="day.events.length > 2">
+                        +{{ day.events.length - 2 }}
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Vue Jour simplifiée -->
+    <div class="day-view" *ngIf="view === 'day'">
+        <div class="day-events-list">
+            <div class="day-event-card"
+                 *ngFor="let event of selectedDateEvents()"
+                 [class]="'card-' + event.type"
+                 [routerLink]="['/orders', event.id]">
+                <div class="event-time">{{ event.date | date:'HH:mm' }}</div>
+                <div class="event-info">
+                    <div class="event-receipt">{{ event.receipt_number }}</div>
+                    <div class="event-client">{{ event.client_name }}</div>
+                    <div class="event-details">
+                        <span>{{ event.items_count }} art.</span>
+                        <span class="event-total">{{ event.total | number:'1.0-0' }} F</span>
+                    </div>
+                </div>
+                <div class="event-badge" *ngIf="event.is_late">⚠️</div>
+            </div>
+            <div class="empty-day" *ngIf="selectedDateEvents().length === 0">
+                📭 Aucune commande
+            </div>
+        </div>
+    </div>
+</div>

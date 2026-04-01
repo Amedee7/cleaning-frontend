@@ -27,6 +27,7 @@ export class ShellComponent {
         { route: '/articles',  icon: '👔', label: 'Articles',     permission: 'articles.view' },
         { type: 'label', label: 'Gestion' },
         { route: '/clients',   icon: '👥', label: 'Clients',      permission: 'orders.view'   },
+        { route: '/clients/groupes-tarifaires-list',   icon: '👥', label: 'Groupe tarifaire',      permission: 'orders.view'   },
         { route: '/reports',   icon: '📈', label: 'Rapports',     permission: 'reports.view'  },
         { type: 'label', label: 'Administration' },
         { route: '/users',    icon: '🔑', label: 'Utilisateurs',  roles: ['super_admin', 'admin', 'manager'] },

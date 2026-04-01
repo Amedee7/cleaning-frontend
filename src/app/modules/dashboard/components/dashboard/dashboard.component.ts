@@ -1,4 +1,4 @@
-import {Component, OnInit, signal} from '@angular/core';
+import {Component, HostListener, OnInit, signal} from '@angular/core';
 import {CommonModule, CurrencyPipe, DatePipe} from '@angular/common';
 import {RouterLink} from '@angular/router';
 import {DashboardPressingService} from '../../../../core/services/pressing.services';
@@ -14,16 +14,39 @@ import {AuthService} from "../../../../core/services/auth.service";
 })
 export class PressingDashboardComponent implements OnInit {
     stats = signal<PressingDashboard | null>(null);
+    loading = signal<boolean>(false);
+    error = signal<string | null>(null);
     today = new Date();
+    total = signal(0);
 
     constructor(
         private dashboardService: DashboardPressingService,
         public auth: AuthService
-    ) {
-    }
+    ) {}
 
     ngOnInit(): void {
-        this.dashboardService.getStats().subscribe(s => this.stats.set(s));
+        this.loadDashboardData();
+    }
+
+    loadDashboardData(): void {
+        this.loading.set(true);
+        this.error.set(null);
+
+        this.dashboardService.getStats().subscribe({
+            next: (data) => {
+                this.stats.set(data);
+                this.loading.set(false);
+            },
+            error: (err) => {
+                console.error('Erreur chargement dashboard:', err);
+                this.error.set('Impossible de charger les données. Veuillez réessayer.');
+                this.loading.set(false);
+            }
+        });
+    }
+
+    retry(): void {
+        this.loadDashboardData();
     }
 
     barPct(amount: number): number {

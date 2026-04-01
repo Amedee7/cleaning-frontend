@@ -18,23 +18,38 @@
             <div class="status-actions">
                 <button *ngIf="order()!.status === 'pending'"
                         class="btn-status processing"
-                        (click)="setStatus('processing')">
-                    ▶ Mettre en traitement
+                        (click)="setStatus('processing')"
+                        [disabled]="updatingStatus() === 'processing'">
+                    <span class="spinner-border-sm" *ngIf="updatingStatus() === 'processing'"></span>
+                    <span *ngIf="updatingStatus() !== 'processing'">▶</span>
+                    {{ updatingStatus() === 'processing' ? 'Mise à jour...' : 'Mettre en traitement' }}
                 </button>
+
                 <button *ngIf="order()!.status === 'processing'"
                         class="btn-status ready"
-                        (click)="setStatus('ready')">
-                    ✓ Marquer prête
+                        (click)="setStatus('ready')"
+                        [disabled]="updatingStatus() === 'ready'">
+                    <span class="spinner-border-sm" *ngIf="updatingStatus() === 'ready'"></span>
+                    <span *ngIf="updatingStatus() !== 'ready'">✓</span>
+                    {{ updatingStatus() === 'ready' ? 'Mise à jour...' : 'Marquer prête' }}
                 </button>
+
                 <button *ngIf="order()!.status === 'ready'"
                         class="btn-status delivered"
-                        (click)="setStatus('delivered')">
-                    📦 Marquer livrée
+                        (click)="setStatus('delivered')"
+                        [disabled]="updatingStatus() === 'delivered'">
+                    <span class="spinner-border-sm" *ngIf="updatingStatus() === 'delivered'"></span>
+                    <span *ngIf="updatingStatus() !== 'delivered'">📦</span>
+                    {{ updatingStatus() === 'delivered' ? 'Mise à jour...' : 'Marquer livrée' }}
                 </button>
+
                 <button *ngIf="!['delivered','cancelled'].includes(order()!.status)"
                         class="btn-status cancel"
-                        (click)="setStatus('cancelled')">
-                    ✕ Annuler
+                        (click)="setStatus('cancelled')"
+                        [disabled]="updatingStatus() === 'cancelled'">
+                    <span class="spinner-border-sm" *ngIf="updatingStatus() === 'cancelled'"></span>
+                    <span *ngIf="updatingStatus() !== 'cancelled'">✕</span>
+                    {{ updatingStatus() === 'cancelled' ? 'Annulation...' : 'Annuler' }}
                 </button>
             </div>
         </div>
@@ -97,11 +112,17 @@
                         <div class="item-main">
                             <div class="item-name">{{ item.article?.name }}</div>
                             <div class="item-meta">
-                                <span class="svc-tag">{{ item.service_label }}</span>
+                                <span class="svc-tag">{{ item.service_type }}</span>
                                 <span class="item-code" *ngIf="item.sticker_code">{{ item.sticker_code }}</span>
                             </div>
                             <div class="item-notes" *ngIf="item.condition_notes">⚠️ {{ item.condition_notes }}</div>
+                            <span class="color-badge" [style.backgroundColor]="getColorCode(item.color)"></span>
+                            {{ item.color }}
+                            <span class="detail-tag" *ngIf="item.brand">
+                                🏷️ {{ item.brand }}
+                            </span>
                         </div>
+
                         <div class="item-right">
                             <div class="item-qty">× {{ item.quantity }}</div>
                             <div class="item-price">{{ +item.unit_price | number:'1.0-0' }}</div>

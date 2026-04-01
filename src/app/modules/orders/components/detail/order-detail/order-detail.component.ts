@@ -16,12 +16,15 @@ import {ToastModule} from 'primeng/toast';
     imports: [CommonModule, DatePipe, RouterLink, FormsModule, TicketPrinterComponent, ConfirmDialogModule, ToastModule],
     providers: [ConfirmationService, MessageService],
     templateUrl: './order-detail.component.html',
-    styleUrl: './order-detail.component.scss'
+    styleUrls: ['./order-detail.component.scss']
 })
 export class OrderDetailComponent implements OnInit {
     order = signal<Order | null>(null);
     settings = signal<PressingSettings | null>(null);
     paying = signal(false);
+
+    // État pour suivre quelle action de statut est en cours
+    updatingStatus = signal<string | null>(null);
 
     // null = aucune génération en cours, 'deposit' ou 'receipt' = en cours
     generating = signal<'deposit' | 'receipt' | null>(null);
@@ -110,6 +113,9 @@ export class OrderDetailComponent implements OnInit {
 
     // ── Statuts ───────────────────────────────────────────────────────────────
     setStatus(status: string): void {
+        // Éviter les clics multiples
+        if (this.updatingStatus()) return;
+
         if (status === 'cancelled') {
             this.confirmationService.confirm({
                 message: 'Voulez-vous vraiment <b>annuler</b> cette commande ?<br>Cette action impacte votre journal de caisse.',
@@ -120,6 +126,7 @@ export class OrderDetailComponent implements OnInit {
                 acceptButtonStyleClass: 'p-button-danger p-button-text',
                 rejectButtonStyleClass: 'p-button-secondary p-button-text',
                 accept: () => this.doStatusUpdate(status),
+                reject: () => this.updatingStatus.set(null)
             });
         } else {
             this.doStatusUpdate(status);
@@ -129,9 +136,14 @@ export class OrderDetailComponent implements OnInit {
     private doStatusUpdate(status: string): void {
         const id = this.order()?.id;
         if (!id) return;
+
+        // Activer le spinner pour ce statut
+        this.updatingStatus.set(status);
+
         this.orderService.updateStatus(id, status).subscribe({
             next: (o) => {
                 this.order.set(o);
+                this.updatingStatus.set(null);
                 this.messageService.add({
                     severity: 'success',
                     summary: 'Statut mis à jour',
@@ -139,12 +151,16 @@ export class OrderDetailComponent implements OnInit {
                     life: 3000
                 });
             },
-            error: () => this.messageService.add({
-                severity: 'error',
-                summary: 'Erreur',
-                detail: 'Impossible de modifier le statut.',
-                life: 5000
-            }),
+            error: (err) => {
+                this.updatingStatus.set(null);
+                console.error('Erreur mise à jour statut:', err);
+                this.messageService.add({
+                    severity: 'error',
+                    summary: 'Erreur',
+                    detail: err?.error?.message || 'Impossible de modifier le statut.',
+                    life: 5000
+                });
+            },
         });
     }
 
@@ -183,12 +199,12 @@ export class OrderDetailComponent implements OnInit {
                             life: 3000
                         });
                     },
-                    error: () => {
+                    error: (err) => {
                         this.paying.set(false);
                         this.messageService.add({
                             severity: 'error',
                             summary: 'Échec',
-                            detail: 'Erreur lors de l\'enregistrement du paiement.'
+                            detail: err?.error?.message || 'Erreur lors de l\'enregistrement du paiement.'
                         });
                     },
                 });
@@ -260,5 +276,21 @@ export class OrderDetailComponent implements OnInit {
             transfer: '🔁',
             voucher: '🎫'
         } as Record<string, string>)[m] ?? '💰';
+    }
+
+    getColorCode(color: string): string {
+        const colorMap: Record<string, string> = {
+            'Blanc': '#ffffff',
+            'Noir': '#000000',
+            'Bleu': '#3b82f6',
+            'Rouge': '#ef4444',
+            'Vert': '#10b981',
+            'Jaune': '#f59e0b',
+            'Gris': '#6b7280',
+            'Marron': '#8b5a2b',
+            'Beige': '#f5f5dc',
+            'Multicolore': 'linear-gradient(45deg, red, blue, green)'
+        };
+        return colorMap[color] || '#cccccc';
     }
 }

@@ -5,11 +5,15 @@ import { FormsModule } from '@angular/forms';
 import { OrderService } from '../../../../../core/services/pressing.services';
 import { Order } from '../../../../../core/models/pressing.models';
 import {AuthService} from "../../../../../core/services/auth.service";
+import {ConfirmationService, MessageService} from 'primeng/api';
+import {ConfirmDialogModule} from 'primeng/confirmdialog';
+import {ToastModule} from 'primeng/toast';
 
 @Component({
   selector: 'app-order-list',
   standalone: true,
-  imports: [CommonModule, DatePipe, RouterLink, FormsModule],
+  imports: [CommonModule, DatePipe, RouterLink, FormsModule, ConfirmDialogModule, ToastModule],
+    providers: [ConfirmationService, MessageService],
 templateUrl: './order-list.component.html',
     styleUrls: ['./order-list.component.scss']
 })
@@ -37,6 +41,8 @@ export class OrderListComponent implements OnInit {
       private orderService: OrderService,
       private route: ActivatedRoute,
       public auth: AuthService,
+      private confirmationService: ConfirmationService,
+      private messageService: MessageService,
       ) {}
 
   ngOnInit(): void {
@@ -68,16 +74,43 @@ export class OrderListComponent implements OnInit {
   }
 
   setStatus(v: string): void { this.statusFilter = v; this.page.set(1); this.load(); }
+
   goPage(p: number): void    { this.page.set(p); this.load(); }
 
   isLate(o: Order): boolean {
     return !['delivered','cancelled'].includes(o.status) && new Date(o.promised_at) < new Date();
   }
 
-  deliver(o: Order): void {
-    if (!confirm(`Marquer la commande ${o.receipt_number} comme livrée ?`)) return;
-    this.orderService.updateStatus(o.id, 'delivered').subscribe(() => this.load());
-  }
+    deliver(o: Order): void {
+        this.confirmationService.confirm({
+            message: `Voulez-vous vraiment marquer la commande <strong>${o.receipt_number}</strong> comme livrée ?`,
+            header: 'Confirmation de livraison',
+            icon: 'pi pi-check-circle',
+            acceptLabel: 'Oui, marquer comme livrée',
+            rejectLabel: 'Annuler',
+            acceptButtonStyleClass: 'p-button-success',
+            rejectButtonStyleClass: 'p-button-secondary',
+            accept: () => {
+                this.orderService.updateStatus(o.id, 'delivered').subscribe({
+                    next: () => {
+                        this.load();
+                        this.messageService.add({
+                            severity: 'success',
+                            summary: 'Succès',
+                            detail: `Commande ${o.receipt_number} marquée comme livrée.`
+                        });
+                    },
+                    error: (err) => {
+                        this.messageService.add({
+                            severity: 'error',
+                            summary: 'Erreur',
+                            detail: 'Impossible de mettre à jour le statut.'
+                        });
+                    }
+                });
+            }
+        });
+    }
 
   statusLabel(s: string): string {
     return { pending:'En attente', processing:'En cours', ready:'Prêt', delivered:'Livré', cancelled:'Annulé' }[s] ?? s;

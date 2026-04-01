@@ -62,6 +62,18 @@ export class OrderService extends ApiService {
         return this.get<any>('orders', filters);
     }
 
+    getOrdersByDateRange(startDate: string, endDate: string) {
+        return this.getAll({
+            date_from: startDate,
+            date_to: endDate,
+            per_page: 1000
+        });
+    }
+
+    getCalendar(filters = {}): Observable<any> {
+        return this.get<any>('orders/calendar', filters);
+    }
+
     getById(id: number): Observable<Order> {
         return this.get<Order>(`orders/${id}`);
     }

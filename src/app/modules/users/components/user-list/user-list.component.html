@@ -88,6 +88,7 @@
                         <button *ngIf="auth.can('users.edit') && u.id !== auth.user()?.id"
                                 class="btn-icon" [class.danger]="u.status === 'active'"
                                 (click)="toggleActive(u)" title="Activer/Désactiver">
+                            {{ u.is_active ? '🔒' : '🔓' }}
                         </button>
                     </div>
                 </td>

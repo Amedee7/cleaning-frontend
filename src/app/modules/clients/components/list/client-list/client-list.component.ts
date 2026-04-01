@@ -22,6 +22,7 @@ export class ClientListComponent implements OnInit {
     total      = signal(0);
     page       = signal(1);
     lastPage   = signal(1);
+    selectedClient = signal<any | null>(null);
 
     search       = '';
     statusFilter = '';
@@ -90,5 +91,37 @@ export class ClientListComponent implements OnInit {
                 });
             },
         });
+    }
+
+    displayName(c: any): string {
+        if (c.company_name) {
+            return c.company_name;
+        }
+        return [c.contact_first_name, c.contact_last_name].filter(Boolean).join(' ') || 'Sans nom';
+    }
+
+    getAvatarColor(id: number): string {
+        const colors = [
+            '#2563eb', '#7c3aed', '#db2777', '#dc2626', '#ea580c',
+            '#ca8a04', '#16a34a', '#0891b2', '#4f46e5', '#9333ea'
+        ];
+        return colors[id % colors.length];
+    }
+
+    showDetails(client: any): void {
+        // Charger les détails complets si nécessaire
+        if (!client.orders_count || !client.total_spent) {
+            this.clientService.getById(client.id).subscribe({
+                next: (fullClient) => {
+                    this.selectedClient.set(fullClient);
+                }
+            });
+        } else {
+            this.selectedClient.set(client);
+        }
+    }
+
+    closeDetails(): void {
+        this.selectedClient.set(null);
     }
 }

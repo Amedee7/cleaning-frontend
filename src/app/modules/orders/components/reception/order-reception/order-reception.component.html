@@ -38,19 +38,27 @@
                 <div *ngIf="clientMode==='anon'" class="anon-form">
                     <div class="form-row">
                         <div class="form-group">
-                            <label>Nom</label>
-                            <input [(ngModel)]="anonName" placeholder="Nom du client" />
+                            <label>Nom *</label>
+                            <input [(ngModel)]="anonName" placeholder="Nom du client" required />
                         </div>
                         <div class="form-group">
-                            <label>Téléphone</label>
-                            <input [(ngModel)]="anonPhone" placeholder="07 00 00 00 00" />
+                            <label>Téléphone *</label>
+                            <input [(ngModel)]="anonPhone" placeholder="07 00 00 00 00" required />
                         </div>
                     </div>
                 </div>
 
+                <!-- Référence complémentaire (N° chambre, etc.) -->
                 <div class="form-group" style="margin-top:12px">
                     <label>Référence (N° chambre hôtel, etc.)</label>
                     <input [(ngModel)]="reference" placeholder="Optionnel" />
+                </div>
+
+                <!-- Adresse de livraison (pour delivery_type = delivery) -->
+                <div class="form-group" *ngIf="deliveryType === 'delivery'">
+                    <label>Adresse de livraison *</label>
+                    <textarea [(ngModel)]="deliveryAddress" rows="2"
+                              placeholder="Adresse complète de livraison" required></textarea>
                 </div>
             </div>
 
@@ -73,8 +81,6 @@
                        placeholder="🔍 Rechercher un article..."
                        class="search-input" />
 
-
-
                 <!-- Grille articles -->
                 <div class="articles-grid">
                     <div class="article-card"
@@ -89,20 +95,27 @@
                         <div class="article-name">{{ a.name }}</div>
                         <div class="article-ref" *ngIf="a.reference">{{ a.reference }}</div>
                         <div class="article-price">{{ +a.price_full | number:'1.0-0' }} FCFA</div>
+
+                        <!-- Prix par type de service -->
+                        <div class="article-prices" *ngIf="a.price_cleaning || a.price_ironing || a.price_dry_cleaning">
+                            <span class="price-tag" *ngIf="a.price_cleaning">🧼 {{ a.price_cleaning }}</span>
+                            <span class="price-tag" *ngIf="a.price_ironing">👔 {{ a.price_ironing }}</span>
+                            <span class="price-tag" *ngIf="a.price_dry_cleaning">✨ {{ a.price_dry_cleaning }}</span>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
 
         <!-- Colonne droite : Récapitulatif commande -->
-        <div class="right-col">
+        <div class="right-col scrollable">
             <div class="order-summary">
                 <h3>🧾 Commande</h3>
                 <div class="items-count">
-                    {{ orderItems().length }} article(s)
+                    {{ orderItems().length }} article(s) · {{ totalItems() }} pièces
                 </div>
 
-                <!-- Items -->
+                <!-- Articles de la commande -->
                 <div class="order-items">
                     <div class="order-item" *ngFor="let item of orderItems(); let i=index">
                         <div class="item-top">
@@ -118,6 +131,7 @@
                                     {{ s.label }}
                                 </button>
                             </div>
+
                             <!-- Quantité + prix -->
                             <div class="item-bottom">
                                 <div class="qty-control">
@@ -130,9 +144,115 @@
                                 </div>
                                 <div class="item-total">{{ item.total | number:'1.0-0' }} FCFA</div>
                             </div>
+
+                            <!-- Code sticker -->
+                            <div class="sticker-info" *ngIf="item.sticker_code">
+                                <span class="sticker-label">🏷️ Sticker:</span>
+                                <span class="sticker-code">{{ item.sticker_code }}</span>
+                                <button class="sticker-copy" (click)="copyStickerCode(item.sticker_code)"
+                                        title="Copier le code">📋</button>
+                            </div>
+
                             <!-- Notes état -->
-                            <input [(ngModel)]="item.condition_notes" placeholder="État / remarque..."
-                                   class="condition-input" />
+                            <div class="condition-section">
+                                <input [(ngModel)]="item.condition_notes"
+                                       placeholder="État / remarque (taches, accrocs, boutons manquants...)"
+                                       class="condition-input" />
+
+                                <div class="quick-notes" *ngIf="!item.condition_notes">
+                                    <button class="quick-note-btn" (click)="addQuickNote(i, 'Tache')">🔴 Tache</button>
+                                    <button class="quick-note-btn" (click)="addQuickNote(i, 'Bouton manquant')">🔘 Bouton manquant</button>
+                                    <button class="quick-note-btn" (click)="addQuickNote(i, 'Déchirure')">💔 Déchirure</button>
+                                </div>
+                            </div>
+
+                            <!-- Couleur et marque -->
+                            <div class="item-variants">
+                                <div class="variant-row">
+                                    <div class="variant-group">
+                                        <label class="variant-label mt-4">Couleur</label>
+                                        <div class="color-picker-container">
+                                            <button type="button"
+                                                    class="color-selector-btn"
+                                                    (click)="toggleColorPalette(i)"
+                                                    [style.backgroundColor]="getDisplayColor(item)">
+                                                <span class="color-btn-text" *ngIf="item.color && item.color !== 'custom'"></span>
+                                                <span class="color-preview" *ngIf="item.color && item.color === 'custom'"
+                                                      [style.backgroundColor]="item.customColor"></span>
+                                            </button>
+
+                                            <div class="color-palette" *ngIf="activeColorPicker === i">
+                                                <div class="palette-header">
+                                                    <span>Sélectionnez une couleur</span>
+                                                    <button class="close-palette" (click)="activeColorPicker = null">✕</button>
+                                                </div>
+
+                                                <div class="color-grid">
+                                                    <div class="color-item"
+                                                         *ngFor="let color of predefinedColors"
+                                                         (click)="selectColor(i, color.name, color.code)"
+                                                         [style.backgroundColor]="color.code"
+                                                         [title]="color.name">
+                                                        <span class="color-tooltip">{{ color.name }}</span>
+                                                    </div>
+                                                </div>
+
+                                                <div class="custom-color-section">
+                                                    <div class="custom-color-label">Couleur personnalisée</div>
+                                                    <div class="custom-color-picker">
+                                                        <input type="color"
+                                                               #colorInput
+                                                               (input)="onCustomColorChange(i, colorInput.value)"
+                                                               class="color-input" />
+                                                        <input type="text"
+                                                               [(ngModel)]="item.customColor"
+                                                               (ngModelChange)="onCustomColorTextChange(i, $event)"
+                                                               placeholder="#HEX ou nom"
+                                                               class="color-hex-input" />
+                                                    </div>
+
+                                                    <div class="custom-preview" *ngIf="item.customColor">
+                                                        <div class="preview-label">Aperçu</div>
+                                                        <div class="preview-color" [style.backgroundColor]="item.customColor"></div>
+                                                    </div>
+                                                </div>
+
+                                                <div class="gradient-section">
+                                                    <div class="gradient-label">Ou survolez ici 👇</div>
+                                                    <div class="color-gradient"
+                                                         (mousemove)="onGradientHover($event, i)"
+                                                         (click)="onGradientClick($event, i)"
+                                                         #gradient>
+                                                        <div class="gradient-overlay"></div>
+                                                    </div>
+                                                    <div class="hover-preview" *ngIf="hoverColor">
+                                                        <span class="hover-color" [style.backgroundColor]="hoverColor"></span>
+                                                        <span class="hover-code">{{ hoverColor }}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="variant-group">
+                                        <label class="variant-label">Marque</label>
+                                        <input [(ngModel)]="item.brand"
+                                               placeholder="Ex: Nike, Zara..."
+                                               class="brand-input"
+                                               list="brand-suggestions" />
+                                        <datalist id="brand-suggestions">
+                                            <option value="Nike">
+                                            <option value="Adidas">
+                                            <option value="Zara">
+                                            <option value="H&M">
+                                            <option value="Lacoste">
+                                            <option value="Levi's">
+                                            <option value="Gucci">
+                                            <option value="Louis Vuitton">
+                                        </datalist>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -144,8 +264,32 @@
                 <!-- Dates -->
                 <div class="summary-section">
                     <div class="form-group">
+                        <label>Date de réception *</label>
+                        <input type="datetime-local" [(ngModel)]="receivedAt" class="datetime-input" />
+                        <small class="field-hint">Par défaut: maintenant</small>
+                    </div>
+                    <div class="form-group">
                         <label>Date de retour prévue *</label>
-                        <input type="datetime-local" [(ngModel)]="promisedAt" />
+                        <input type="datetime-local" [(ngModel)]="promisedAt" class="datetime-input" required />
+                    </div>
+                </div>
+
+                <!-- Type de livraison -->
+                <div class="summary-section">
+                    <label class="section-label">Type de livraison</label>
+                    <div class="delivery-toggle">
+                        <button type="button"
+                                class="delivery-btn"
+                                [class.active]="deliveryType === 'pickup'"
+                                (click)="deliveryType = 'pickup'">
+                            📦 Retrait en boutique
+                        </button>
+                        <button type="button"
+                                class="delivery-btn"
+                                [class.active]="deliveryType === 'delivery'"
+                                (click)="deliveryType = 'delivery'">
+                            🚚 Livraison à domicile
+                        </button>
                     </div>
                 </div>
 
@@ -163,12 +307,13 @@
                     <div *ngIf="paymentTiming === 'at_reception'" class="payment-now">
                         <div class="form-row">
                             <div class="form-group">
-                                <label>Montant encaissé</label>
-                                <input type="number" [(ngModel)]="amountPaid" [placeholder]="total().toString()" />
+                                <label>Montant encaissé *</label>
+                                <input type="number" [(ngModel)]="amountPaid"
+                                       [placeholder]="total().toString()" required />
                             </div>
                             <div class="form-group">
-                                <label>Mode</label>
-                                <select [(ngModel)]="paymentMethod">
+                                <label>Mode de paiement *</label>
+                                <select [(ngModel)]="paymentMethod" required>
                                     <option *ngFor="let m of paymentMethods" [value]="m.value">{{ m.label }}</option>
                                 </select>
                             </div>
@@ -176,6 +321,11 @@
                         <div class="monnaie" *ngIf="amountPaid > total()">
                             Monnaie à rendre : <strong>{{ amountPaid - total() | number:'1.0-0' }} FCFA</strong>
                         </div>
+                    </div>
+
+                    <div class="form-group" *ngIf="paymentMethod === 'check' || paymentMethod === 'transfer'">
+                        <label>Référence de paiement</label>
+                        <input [(ngModel)]="paymentReference" placeholder="N° chèque, référence virement..." />
                     </div>
                 </div>
 
@@ -191,55 +341,74 @@
                         <span class="discount">−{{ discount() | number:'1.0-0' }} FCFA</span>
                     </div>
 
-                    <!-- Toggle TVA -->
                     <div class="tva-toggle-row">
                         <div class="tva-toggle">
                             <button type="button"
                                     class="tva-btn"
-                                    [class.active]="tvaActive === 1"
+                                    [class.active]="tvaActive() === 1"
                                     (click)="toggleTva(true)">
                                 TVA
                             </button>
                             <button type="button"
                                     class="tva-btn"
-                                    [class.active]="tvaActive === 0"
+                                    [class.active]="tvaActive() === 0"
                                     (click)="toggleTva(false)">
                                 Hors TVA
                             </button>
                         </div>
 
-                        <div class="tva-amount" *ngIf="tvaActive === 1">
+                        <div class="tva-amount" *ngIf="tvaActive() === 1">
                             <input type="number"
                                    [(ngModel)]="tvaTaux"
                                    min="0" max="100"
                                    class="tva-input" />
                             <span class="tva-suffix">% = {{ taxAmount() | number:'1.0-0' }} FCFA</span>
                         </div>
-                        <div class="tva-amount" *ngIf="tvaActive === 0">
+                        <div class="tva-amount" *ngIf="tvaActive() === 0">
                             <span class="text-muted">HT = TTC</span>
                         </div>
                     </div>
 
                     <div class="total-row grand-total">
-                        <span>TOTAL {{ tvaActive ? 'TTC' : 'HT' }}</span>
+                        <span>TOTAL {{ tvaActive() ? 'TTC' : 'HT' }}</span>
                         <span>{{ total() | number:'1.0-0' }} FCFA</span>
                     </div>
                 </div>
 
                 <!-- Notes -->
-                <textarea [(ngModel)]="notes" rows="2" placeholder="Commentaires sur le reçu..."
-                          class="notes-input"></textarea>
+                <div class="notes-section">
+                    <div class="form-group">
+                        <label>Notes sur le reçu (visibles par le client)</label>
+                        <textarea [(ngModel)]="notes" rows="2"
+                                  placeholder="Commentaires sur le reçu..."
+                                  class="notes-input"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Notes internes (non visibles par le client)</label>
+                        <textarea [(ngModel)]="internalNotes" rows="2"
+                                  placeholder="Instructions pour l'équipe..."
+                                  class="notes-input internal"></textarea>
+                    </div>
+                </div>
             </div>
 
-            <!-- Bouton d'action séparé et mis en évidence -->
+            <!-- Bouton d'action avec spinner -->
             <div class="action-container">
                 <button class="btn-submit-highlight" [disabled]="!canSubmit() || saving()"
                         (click)="submit()">
-                    <span class="btn-icon">✓</span>
-                    <span class="btn-text">{{ saving() ? 'Création en cours...' : 'Créer la commande' }}</span>
-                    <span class="btn-total">{{ total() | number:'1.0-0' }} FCFA</span>
+                    <div class="btn-spinner" *ngIf="saving()">
+                        <div class="spinner-border"></div>
+                    </div>
+                    <ng-container *ngIf="!saving()">
+                        <span class="btn-icon">✓</span>
+                        <span class="btn-text">Créer la commande</span>
+                        <span class="btn-total">{{ total() | number:'1.0-0' }} FCFA</span>
+                    </ng-container>
+                    <ng-container *ngIf="saving()">
+                        <span class="btn-text">Création en cours...</span>
+                    </ng-container>
                 </button>
-                <div class="action-help" *ngIf="!canSubmit()">
+                <div class="action-help" *ngIf="!canSubmit() && !saving()">
                     ⚠️ Veuillez sélectionner un client et au moins un article
                 </div>
             </div>

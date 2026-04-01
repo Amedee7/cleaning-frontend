@@ -51,7 +51,9 @@
                 <h1 class="page-title">Pressing</h1>
             </div>
             <div class="topbar-right">
-                <span class="topbar-date">{{ today | date:'EEEE d MMMM yyyy' }}</span>
+              <span class="topbar-date">
+                    {{ today | date:'EEEE d MMMM yyyy' : '' : 'fr-FR' }}
+              </span>
             </div>
         </header>
         <div class="content-area">

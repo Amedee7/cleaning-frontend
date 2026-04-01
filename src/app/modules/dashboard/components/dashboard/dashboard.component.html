@@ -2,135 +2,209 @@
     <div class="page-header">
         <div>
             <h1>🧺 Tableau de bord</h1>
-            <p class="subtitle">{{ today | date:'EEEE d MMMM yyyy' }}</p>
         </div>
-        <!-- Nouvelle réception — nécessite orders.create -->
-        <a *ngIf="auth.can('orders.create')"
-           routerLink="/orders/new"
-           class="btn-primary">+ Nouvelle réception</a>
-    </div>
+        <div class="page-header">
+            <div class="header-actions">
+                <a routerLink="/orders/calendar" class="btn-calendar">
+                    📅 Vue calendrier
+                </a>
 
-    <!-- KPI — visibles si orders.view -->
-    <div class="kpi-grid" *ngIf="stats() && auth.can('orders.view')">
-        <div class="kpi-card green">
-            <div class="kpi-icon">📦</div>
-            <div class="kpi-value">{{ stats()!.orders_today }}</div>
-            <div class="kpi-label">Commandes aujourd'hui</div>
-        </div>
-        <div class="kpi-card cyan">
-            <div class="kpi-icon">👔</div>
-            <div class="kpi-value">{{ stats()!.items_today }}</div>
-            <div class="kpi-label">Articles réceptionnés</div>
-        </div>
-        <!-- Recettes — nécessite reports.view -->
-        <div class="kpi-card purple" *ngIf="auth.can('reports.view')">
-            <div class="kpi-icon">💰</div>
-            <div class="kpi-value">{{ stats()!.revenue_today | number:'1.0-0' }} FCFA</div>
-            <div class="kpi-label">Recettes du jour</div>
-        </div>
-        <div class="kpi-card yellow" [class.alert]="stats()!.late_orders > 0">
-            <div class="kpi-icon">⚠️</div>
-            <div class="kpi-value">{{ stats()!.late_orders }}</div>
-            <div class="kpi-label">Commandes en retard</div>
+                <a *ngIf="auth.can('orders.create')"
+                   routerLink="/orders/new"
+                   class="btn-primary pulse">
+                    ➕ Nouvelle réception
+                </a>
+            </div>
         </div>
     </div>
 
-    <!-- Statuts — nécessite orders.view -->
-    <div class="status-row" *ngIf="stats() && auth.can('orders.view')">
-        <div class="status-card" routerLink="/orders" [queryParams]="{status:'pending'}">
-            <span class="status-dot dot-pending"></span>
-            <span class="status-count">{{ stats()!.pending_orders }}</span>
-            <span class="status-label">En attente</span>
-        </div>
-        <div class="status-card" routerLink="/orders" [queryParams]="{status:'processing'}">
-            <span class="status-dot dot-processing"></span>
-            <span class="status-count">{{ stats()!.processing_orders }}</span>
-            <span class="status-label">En traitement</span>
-        </div>
-        <div class="status-card highlight" routerLink="/orders" [queryParams]="{status:'ready'}">
-            <span class="status-dot dot-ready"></span>
-            <span class="status-count">{{ stats()!.ready_orders }}</span>
-            <span class="status-label">Prêtes à retirer</span>
+<!--    &lt;!&ndash; État de chargement global &ndash;&gt;-->
+<!--    <div *ngIf="loading()" class="loading-overlay">-->
+<!--        <div class="spinner-container">-->
+<!--            <div class="spinner"></div>-->
+<!--            <p>Chargement du tableau de bord...</p>-->
+<!--        </div>-->
+<!--    </div>-->
+
+    <!-- État d'erreur -->
+    <div *ngIf="error()" class="error-container">
+        <div class="error-card">
+            <span class="error-icon">⚠️</span>
+            <p>{{ error() }}</p>
+            <button (click)="retry()" class="retry-btn">Réessayer</button>
         </div>
     </div>
 
-    <div class="bottom-grid" *ngIf="stats()">
 
-        <!-- Prêtes à récupérer — nécessite orders.view -->
-        <div class="list-card" *ngIf="auth.can('orders.view')">
+
+
+
+
+    <!-- Skeletons pour les KPI -->
+    <div class="kpi-grid" *ngIf="loading()">
+        <div class="kpi-card skeleton" *ngFor="let i of [1,2,3,4]">
+            <div class="skeleton-shimmer"></div>
+        </div>
+    </div>
+
+    <!-- Skeletons pour les statuts -->
+    <div class="status-row" *ngIf="loading()">
+        <div class="status-card skeleton" *ngFor="let i of [1,2,3]">
+            <div class="skeleton-shimmer"></div>
+        </div>
+    </div>
+
+    <!-- Skeletons pour les listes -->
+    <div class="bottom-grid" *ngIf="loading()">
+        <div class="list-card skeleton" *ngFor="let i of [1,2,3]">
             <div class="list-header">
-                <h3>✅ Prêtes à récupérer</h3>
-                <a routerLink="/orders" [queryParams]="{status:'ready'}" class="see-all">Voir tout</a>
+                <div class="skeleton-shimmer" style="width: 120px; height: 20px;"></div>
             </div>
             <div class="order-list">
-                <div class="order-row" *ngFor="let o of stats()!.ready_list"
-                     [routerLink]="['/orders', o.id]">
-                    <div class="order-ref">{{ o.receipt_number }}</div>
-                    <div class="order-client">{{ o.client_display_name }}</div>
-                    <div class="order-date">{{ o.promised_at | date:'dd/MM HH:mm' }}</div>
-                    <span class="badge badge-ready">Prêt</span>
-                </div>
-                <div class="empty" *ngIf="!stats()!.ready_list.length">
-                    Aucune commande prête 🎉
-                </div>
-            </div>
-        </div>
-
-        <!-- En retard — nécessite orders.view -->
-        <div class="list-card" *ngIf="auth.can('orders.view')">
-            <div class="list-header">
-                <h3>🔴 En retard</h3>
-                <a routerLink="/orders" [queryParams]="{late:'true'}" class="see-all">Voir tout</a>
-            </div>
-            <div class="order-list">
-                <div class="order-row late" *ngFor="let o of stats()!.late_list"
-                     [routerLink]="['/orders', o.id]">
-                    <div class="order-ref">{{ o.receipt_number }}</div>
-                    <div class="order-client">{{ o.client_display_name }}</div>
-                    <div class="order-date late-date">{{ o.promised_at | date:'dd/MM HH:mm' }}</div>
-                    <span class="badge badge-late">Retard</span>
-                </div>
-                <div class="empty" *ngIf="!stats()!.late_list.length">
-                    Aucun retard ✅
-                </div>
-            </div>
-        </div>
-
-        <!-- Ventilation paiements — nécessite reports.view -->
-        <div class="list-card payment-card" *ngIf="auth.can('reports.view')">
-            <div class="list-header">
-                <h3>💳 Recettes du jour</h3>
-            </div>
-            <div class="payment-bars">
-                <div class="payment-row">
-                    <span>💵 Espèces</span>
-                    <div class="bar-wrap">
-                        <div class="bar" [style.width.%]="barPct(stats()!.revenue_cash)"
-                             style="background:#4fffb0"></div>
-                    </div>
-                    <span class="amount">{{ stats()!.revenue_cash | number:'1.0-0' }}</span>
-                </div>
-                <div class="payment-row">
-                    <span>💳 Carte</span>
-                    <div class="bar-wrap">
-                        <div class="bar" [style.width.%]="barPct(stats()!.revenue_card)"
-                             style="background:#00cfff"></div>
-                    </div>
-                    <span class="amount">{{ stats()!.revenue_card | number:'1.0-0' }}</span>
-                </div>
-                <div class="payment-row">
-                    <span>📱 Mobile Money</span>
-                    <div class="bar-wrap">
-                        <div class="bar" [style.width.%]="barPct(stats()!.revenue_mobile)"
-                             style="background:#b388ff"></div>
-                    </div>
-                    <span class="amount">{{ stats()!.revenue_mobile | number:'1.0-0' }}</span>
-                </div>
-                <div class="total-row">
-                    <span>Total</span>
-                    <span class="total-amount">{{ stats()!.revenue_today | number:'1.0-0' }} FCFA</span>
+                <div class="order-row" *ngFor="let j of [1,2,3]">
+                    <div class="skeleton-shimmer" style="width: 80px; height: 16px;"></div>
+                    <div class="skeleton-shimmer" style="width: 120px; height: 16px;"></div>
+                    <div class="skeleton-shimmer" style="width: 60px; height: 16px;"></div>
                 </div>
             </div>
         </div>
     </div>
+
+
+
+
+
+
+    <!-- Contenu normal -->
+    <ng-container *ngIf="!loading() && !error()">
+        <!-- KPI — visibles si orders.view -->
+        <div class="kpi-grid" *ngIf="stats() && auth.can('orders.view')">
+            <div class="kpi-card green">
+                <div class="kpi-icon">📦</div>
+                <div class="kpi-value">{{ stats()!.orders_today }}</div>
+                <div class="kpi-label">Commandes aujourd'hui</div>
+            </div>
+            <div class="kpi-card cyan">
+                <div class="kpi-icon">👔</div>
+                <div class="kpi-value">{{ stats()!.items_today }}</div>
+                <div class="kpi-label">Articles réceptionnés</div>
+            </div>
+            <!-- Recettes — nécessite reports.view -->
+            <div class="kpi-card purple" *ngIf="auth.can('reports.view')">
+                <div class="kpi-icon">💰</div>
+                <div class="kpi-value">{{ stats()!.revenue_today | number:'1.0-0' }} FCFA</div>
+                <div class="kpi-label">Recettes du jour</div>
+            </div>
+            <div class="kpi-card yellow" [class.alert]="stats()!.late_orders > 0">
+                <div class="kpi-icon">⚠️</div>
+                <div class="kpi-value">{{ stats()!.late_orders }}</div>
+                <div class="kpi-label">Commandes en retard</div>
+            </div>
+        </div>
+
+        <!-- Skeletons pour les KPI -->
+        <div class="kpi-grid" *ngIf="loading()">
+            <div class="kpi-card skeleton" *ngFor="let i of [1,2,3,4]">
+                <div class="skeleton-shimmer"></div>
+            </div>
+        </div>
+
+        <!-- Statuts — nécessite orders.view -->
+        <div class="status-row" *ngIf="stats() && auth.can('orders.view')">
+            <div class="status-card" routerLink="/orders" [queryParams]="{status:'pending'}">
+                <span class="status-dot dot-pending"></span>
+                <span class="status-count">{{ stats()!.pending_orders }}</span>
+                <span class="status-label">En attente</span>
+            </div>
+            <div class="status-card" routerLink="/orders" [queryParams]="{status:'processing'}">
+                <span class="status-dot dot-processing"></span>
+                <span class="status-count">{{ stats()!.processing_orders }}</span>
+                <span class="status-label">En traitement</span>
+            </div>
+            <div class="status-card highlight" routerLink="/orders" [queryParams]="{status:'ready'}">
+                <span class="status-dot dot-ready"></span>
+                <span class="status-count">{{ stats()!.ready_orders }}</span>
+                <span class="status-label">Prêtes à retirer</span>
+            </div>
+        </div>
+
+        <div class="bottom-grid" *ngIf="stats()">
+            <!-- Prêtes à récupérer — nécessite orders.view -->
+            <div class="list-card" *ngIf="auth.can('orders.view')">
+                <div class="list-header">
+                    <h3>✅ Prêtes à récupérer</h3>
+                    <a routerLink="/orders" [queryParams]="{status:'ready'}" class="see-all">Voir tout</a>
+                </div>
+                <div class="order-list">
+                    <div class="order-row" *ngFor="let o of stats()!.ready_list"
+                         [routerLink]="['/orders', o.id]">
+                        <div class="order-ref">{{ o.receipt_number }}</div>
+                        <div class="order-client">{{ o.client_display_name }}</div>
+                        <div class="order-date">{{ o.promised_at | date:'dd/MM HH:mm' }}</div>
+                        <span class="badge badge-ready">Prêt</span>
+                    </div>
+                    <div class="empty" *ngIf="!stats()!.ready_list.length">
+                        Aucune commande prête 🎉
+                    </div>
+                </div>
+            </div>
+
+            <!-- En retard — nécessite orders.view -->
+            <div class="list-card" *ngIf="auth.can('orders.view')">
+                <div class="list-header">
+                    <h3>🔴 En retard</h3>
+                    <a routerLink="/orders" [queryParams]="{late:'true'}" class="see-all">Voir tout</a>
+                </div>
+                <div class="order-list">
+                    <div class="order-row late" *ngFor="let o of stats()!.late_list"
+                         [routerLink]="['/orders', o.id]">
+                        <div class="order-ref">{{ o.receipt_number }}</div>
+                        <div class="order-client">{{ o.client_display_name }}</div>
+                        <div class="order-date late-date">{{ o.promised_at | date:'dd/MM HH:mm' }}</div>
+                        <span class="badge badge-late">Retard</span>
+                    </div>
+                    <div class="empty" *ngIf="!stats()!.late_list.length">
+                        Aucun retard ✅
+                    </div>
+                </div>
+            </div>
+
+            <!-- Ventilation paiements — nécessite reports.view -->
+            <div class="list-card payment-card" *ngIf="auth.can('reports.view')">
+                <div class="list-header">
+                    <h3>💳 Recettes du jour</h3>
+                </div>
+                <div class="payment-bars">
+                    <div class="payment-row">
+                        <span>💵 Espèces</span>
+                        <div class="bar-wrap">
+                            <div class="bar" [style.width.%]="barPct(stats()!.revenue_cash)"
+                                 style="background:#4fffb0"></div>
+                        </div>
+                        <span class="amount">{{ stats()!.revenue_cash | number:'1.0-0' }}</span>
+                    </div>
+                    <div class="payment-row">
+                        <span>💳 Carte</span>
+                        <div class="bar-wrap">
+                            <div class="bar" [style.width.%]="barPct(stats()!.revenue_card)"
+                                 style="background:#00cfff"></div>
+                        </div>
+                        <span class="amount">{{ stats()!.revenue_card | number:'1.0-0' }}</span>
+                    </div>
+                    <div class="payment-row">
+                        <span>📱 Mobile Money</span>
+                        <div class="bar-wrap">
+                            <div class="bar" [style.width.%]="barPct(stats()!.revenue_mobile)"
+                                 style="background:#b388ff"></div>
+                        </div>
+                        <span class="amount">{{ stats()!.revenue_mobile | number:'1.0-0' }}</span>
+                    </div>
+                    <div class="total-row">
+                        <span>Total</span>
+                        <span class="total-amount">{{ stats()!.revenue_today | number:'1.0-0' }} FCFA</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </ng-container>
 </div>

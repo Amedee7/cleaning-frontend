@@ -1,0 +1,185 @@
+<div class="page">
+    <p-toast></p-toast>
+    <p-confirmDialog></p-confirmDialog>
+
+    <!-- En-tête -->
+    <div class="page-header">
+        <div>
+            <h1>🏷️ Groupes tarifaires</h1>
+            <p class="subtitle">{{ total() }} groupe(s) · {{ totalClients() }} clients</p>
+        </div>
+        <button class="btn-primary" (click)="openCreateModal()">
+            + Nouveau groupe
+        </button>
+    </div>
+
+    <!-- Statistiques rapides -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-value">{{ stats().total_groups || 0 }}</div>
+            <div class="stat-label">Groupes actifs</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">{{ stats().total_clients || 0 }}</div>
+            <div class="stat-label">Clients groupés</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">{{ stats().avg_discount || 0 }}%</div>
+            <div class="stat-label">Remise moyenne</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">{{ stats().most_used?.name || '—' }}</div>
+            <div class="stat-label">Groupe le plus utilisé</div>
+        </div>
+    </div>
+
+    <!-- Filtres -->
+    <div class="filters">
+        <div class="search-box">
+            <span class="search-icon">🔍</span>
+            <input class="search-input" [(ngModel)]="search" (ngModelChange)="onSearch()"
+                   placeholder="Rechercher un groupe..." />
+        </div>
+        <select [(ngModel)]="statusFilter" (ngModelChange)="load()" class="filter-select">
+            <option value="">Tous les statuts</option>
+            <option value="active">Actifs uniquement</option>
+            <option value="inactive">Inactifs</option>
+        </select>
+    </div>
+
+    <!-- Tableau -->
+    <div class="table-card">
+        <div class="loading-bar" *ngIf="loading()"></div>
+        <table>
+            <thead>
+            <tr>
+                <th>Groupe</th>
+                <th>Description</th>
+                <th>Remise</th>
+                <th>Clients</th>
+                <th>Statut</th>
+                <th>Actions</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr *ngFor="let groupe of groupes()">
+                <td>
+                    <div class="groupe-name">
+                        <span class="name-icon">🏷️</span>
+                        {{ groupe.name }}
+                    </div>
+                </td>
+                <td>
+                    <span class="description">{{ groupe.description || '—' }}</span>
+                </td>
+                <td>
+                    <div class="discount-badge" [class.high]="groupe.default_discount >= 10">
+                        {{ groupe.default_discount }}% de remise
+                    </div>
+                </td>
+                <td>
+                    <span class="clients-count">{{ groupe.clients_count || 0 }}</span>
+                </td>
+                <td>
+                                <span class="status-badge" [class.active]="groupe.is_active">
+                                    {{ groupe.is_active ? 'Actif' : 'Inactif' }}
+                                </span>
+                </td>
+                <td>
+                    <div class="actions">
+                        <button class="btn-icon edit" (click)="openEditModal(groupe)" title="Modifier">
+                            ✏️
+                        </button>
+                        <button class="btn-icon delete" (click)="deleteGroupe(groupe)" title="Supprimer">
+                            🗑️
+                        </button>
+                    </div>
+                </td>
+            </tr>
+            <tr *ngIf="!loading() && !groupes().length">
+                <td colspan="6" class="empty">Aucun groupe tarifaire trouvé</td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal de création/édition -->
+<div class="modal-overlay" *ngIf="showModal">
+    <div class="modal-container" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+            <h2>{{ editingGroupe ? 'Modifier' : 'Créer' }} un groupe tarifaire</h2>
+            <button class="modal-close" (click)="closeModal()">✕</button>
+        </div>
+
+        <div class="modal-body">
+            <div class="form-group">
+                <label>Nom du groupe *</label>
+                <input [(ngModel)]="formData.name"
+                       placeholder="Ex: VIP, Hôtels, Entreprises..."
+                       class="form-input" />
+            </div>
+
+            <div class="form-group">
+                <label>Description</label>
+                <textarea [(ngModel)]="formData.description"
+                          rows="3"
+                          placeholder="Description du groupe..."
+                          class="form-input"></textarea>
+            </div>
+
+            <div class="form-group">
+                <label>Remise par défaut (%)</label>
+                <div class="discount-input-group">
+                    <input type="number"
+                           [(ngModel)]="formData.default_discount"
+                           min="0" max="100"
+                           step="0.5"
+                           class="discount-input" />
+                    <span class="discount-suffix">%</span>
+                </div>
+                <small class="field-hint">
+                    Cette remise s'appliquera automatiquement à tous les clients du groupe
+                </small>
+            </div>
+
+            <div class="form-group toggle-group">
+                <label class="toggle-label">
+                    <span>Statut du groupe</span>
+                    <span class="toggle" [class.active]="formData.is_active"
+                          (click)="formData.is_active = !formData.is_active">
+                                <span class="toggle-knob"></span>
+                            </span>
+                </label>
+                <small class="field-hint">
+                    {{ formData.is_active ? 'Actif' : 'Inactif' }} - Les groupes inactifs ne peuvent pas être assignés
+                </small>
+            </div>
+
+            <!-- Aperçu de la remise -->
+            <div class="discount-preview" *ngIf="formData.default_discount > 0">
+                <div class="preview-title">Aperçu de la remise</div>
+                <div class="preview-item">
+                    <span>Article à 10 000 FCFA</span>
+                    <span>
+                                <span class="original-price">10 000</span>
+                                <span class="final-price">
+                                    {{ 10000 - (10000 * formData.default_discount / 100) | number:'1.0-0' }} FCFA
+                                </span>
+                            </span>
+                </div>
+                <div class="preview-item">
+                    <span>Économie réalisée</span>
+                    <span class="saving">-{{ 10000 * formData.default_discount / 100 | number:'1.0-0' }} FCFA</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal-footer">
+            <button class="btn-cancel" (click)="closeModal()">Annuler</button>
+            <button class="btn-save" (click)="saveGroupe()" [disabled]="!isFormValid()">
+                {{ editingGroupe ? 'Mettre à jour' : 'Créer le groupe' }}
+            </button>
+        </div>
+    </div>
+</div>

@@ -14,104 +14,147 @@
     </div>
 
     <!-- ── Filtres ────────────────────────────────────────────────────────── -->
-    <div class="filters">
-        <input class="search-input" [(ngModel)]="search" (ngModelChange)="onSearch()"
-               placeholder="🔍 Nom, téléphone, entreprise..." />
-        <select [(ngModel)]="statusFilter" (ngModelChange)="load()" class="filter-select">
-            <option value="">Tous les statuts</option>
-            <option value="active">Actif</option>
-            <option value="inactive">Inactif</option>
-        </select>
-        <select [(ngModel)]="typeFilter" (ngModelChange)="load()" class="filter-select">
-            <option value="">Tous les types</option>
-            <option value="individual">Particulier</option>
-            <option value="company">Entreprise</option>
-        </select>
+    <div class="filters-section">
+        <div class="search-box">
+            <span class="search-icon">🔍</span>
+            <input class="search-input" [(ngModel)]="search" (ngModelChange)="onSearch()"
+                   placeholder="Rechercher par nom, téléphone, entreprise..." />
+        </div>
+
+        <div class="filter-group">
+            <select [(ngModel)]="statusFilter" (ngModelChange)="load()" class="filter-select">
+                <option value="">Tous statuts</option>
+                <option value="active">● Actif</option>
+                <option value="inactive">○ Inactif</option>
+            </select>
+
+            <select [(ngModel)]="typeFilter" (ngModelChange)="load()" class="filter-select">
+                <option value="">Tous types</option>
+                <option value="individual">👤 Particulier</option>
+                <option value="company">🏢 Entreprise</option>
+            </select>
+        </div>
     </div>
 
-    <!-- ── Table ──────────────────────────────────────────────────────────── -->
+    <!-- ── Table des clients ──────────────────────────────────────────────── -->
     <div class="table-card">
         <div class="loading-bar" *ngIf="loading()"></div>
         <table>
             <thead>
             <tr>
                 <th>Client</th>
-                <th>Téléphone</th>
-                <th>Ville</th>
+                <th>Contact</th>
+                <th>Localisation</th>
                 <th>Groupe</th>
-                <th>Commandes</th>
+                <th>Activité</th>
                 <th>Statut</th>
-                <th>Actions</th>
+                <th class="actions-header">Actions</th>
             </tr>
             </thead>
             <tbody>
-            <tr *ngFor="let c of clients()">
+            <tr *ngFor="let c of clients()" class="client-row" [class.inactive]="c.status !== 'active'">
 
-                <!-- Nom + initiales -->
+                <!-- Client avec avatar -->
                 <td>
-                    <div class="client-cell">
-                        <div class="avatar">{{ initials(c) }}</div>
+                    <div class="client-cell" (click)="showDetails(c)" style="cursor: pointer;">
+                        <div class="avatar" [ngStyle]="{'background-color': getAvatarColor(c.id)}">
+                            {{ initials(c) }}
+                        </div>
                         <div class="client-info">
-                            <div class="client-name">{{ fullName(c) }}</div>
-                            <div class="client-email">{{ c.email }}</div>
+                            <div class="client-name">{{ displayName(c) }}</div>
+                            <div class="client-type-badge" *ngIf="c.company_name">
+                                <span class="type-icon">🏢</span> Professionnel
+                            </div>
                         </div>
                     </div>
                 </td>
 
-                <!-- Téléphone -->
+                <!-- Contact -->
                 <td>
-                    <a [href]="'tel:' + c.phone" class="phone-link">{{ c.phone }}</a>
-                    <div class="text-muted" *ngIf="c.mobile && c.mobile !== c.phone">{{ c.mobile }}</div>
+                    <div class="contact-info">
+                        <div class="contact-phone">
+                            <span class="contact-icon">📞</span>
+                            <a [href]="'tel:' + c.phone" class="phone-link">{{ c.phone }}</a>
+                        </div>
+                        <div class="contact-email" *ngIf="c.email">
+                            <span class="contact-icon">✉️</span>
+                            <span>{{ c.email }}</span>
+                        </div>
+                    </div>
                 </td>
 
-                <!-- Ville -->
-                <td>{{ c.city || '—' }}</td>
+                <!-- Localisation -->
+                <td>
+                    <div class="location-info">
+                        <span *ngIf="c.city" class="location-city">{{ c.city }}</span>
+                        <span *ngIf="c.address" class="location-address">{{ c.address | slice:0:30 }}...</span>
+                        <span *ngIf="!c.city && !c.address" class="text-muted">—</span>
+                    </div>
+                </td>
 
                 <!-- Groupe tarifaire -->
                 <td>
-                    <span class="group-badge" *ngIf="c.client_group">{{ c.client_group.name }}</span>
-                    <span class="text-muted" *ngIf="!c.client_group">Standard</span>
+                    <div class="group-info">
+                        <span class="group-badge" *ngIf="c.client_group"
+                              [ngStyle]="{'background-color': c.client_group.color + '20', 'color': c.client_group.color}">
+                            {{ c.client_group.name }}
+                        </span>
+                        <span class="group-badge default" *ngIf="!c.client_group">
+                            Standard
+                        </span>
+                    </div>
                 </td>
 
-                <!-- Nombre de commandes -->
-                <td class="center">
-                    <span class="orders-count" *ngIf="c.orders_count !== undefined && c.orders_count !== null">
-  {{ c.orders_count }}
-</span>
-                    <span class="text-muted" *ngIf="c.orders_count === undefined || c.orders_count === null">—</span>
+                <!-- Activité (commandes) -->
+                <td>
+                    <div class="activity-info">
+                        <span class="orders-count" *ngIf="c.orders_count !== undefined">
+                            <span class="count-number">{{ c.orders_count || 0 }}</span> commandes
+                        </span>
+                        <span class="last-order" *ngIf="c.last_order_at">
+                            Dernière: {{ c.last_order_at | date:'dd/MM/yy' }}
+                        </span>
+                    </div>
                 </td>
 
                 <!-- Statut -->
                 <td>
-            <span class="badge" [ngClass]="c.status === 'active' ? 'badge-active' : 'badge-inactive'">
-              {{ c.status === 'active' ? 'Actif' : 'Inactif' }}
-            </span>
+                    <span class="status-badge" [class.active]="c.status === 'active'">
+                        <span class="status-dot"></span>
+                        {{ c.status === 'active' ? 'Actif' : 'Inactif' }}
+                    </span>
                 </td>
 
                 <!-- Actions -->
                 <td>
-                    <div class="actions">
-                        <!-- Voir — nécessite clients.view -->
-                        <a *ngIf="auth.can('clients.view')"
-                           [routerLink]="['/clients', c.id]"
-                           class="btn-icon" title="Voir">👁️</a>
-
-                        <!-- Modifier — nécessite clients.edit -->
+                    <div class="action-buttons">
+                        <button class="action-icon-btn view" (click)="showDetails(c)" title="Voir détails">
+                            👁️
+                        </button>
                         <a *ngIf="auth.can('clients.edit')"
                            [routerLink]="['/clients', c.id, 'edit']"
-                           class="btn-icon" title="Modifier">✏️</a>
-
-                        <!-- Supprimer — nécessite clients.delete -->
+                           class="action-icon-btn edit"
+                           title="Modifier">
+                            ✏️
+                        </a>
                         <button *ngIf="auth.can('clients.delete')"
-                                class="btn-icon danger"
+                                class="action-icon-btn delete"
                                 (click)="deleteClient(c)"
-                                title="Supprimer">🗑️</button>
+                                title="Supprimer">
+                            🗑️
+                        </button>
                     </div>
                 </td>
             </tr>
 
             <tr *ngIf="!loading() && !clients().length">
-                <td colspan="7" class="empty">Aucun client trouvé</td>
+                <td colspan="7" class="empty-state">
+                    <div class="empty-content">
+                        <span class="empty-icon">👥</span>
+                        <p>Aucun client trouvé</p>
+                        <p class="empty-hint">Essayez de modifier vos filtres ou créez un nouveau client</p>
+                    </div>
+                </td>
             </tr>
             </tbody>
         </table>
@@ -119,8 +162,177 @@
 
     <!-- ── Pagination ─────────────────────────────────────────────────────── -->
     <div class="pagination" *ngIf="lastPage() > 1">
-        <button [disabled]="page() === 1" (click)="goPage(page() - 1)">← Précédent</button>
-        <span>Page {{ page() }} / {{ lastPage() }}</span>
-        <button [disabled]="page() === lastPage()" (click)="goPage(page() + 1)">Suivant →</button>
+        <button class="pagination-btn" [disabled]="page() === 1" (click)="goPage(page() - 1)">
+            ←
+        </button>
+        <span class="pagination-info">Page {{ page() }} / {{ lastPage() }}</span>
+        <button class="pagination-btn" [disabled]="page() === lastPage()" (click)="goPage(page() + 1)">
+            →
+        </button>
+    </div>
+</div>
+
+<!-- ── MODAL DÉTAILS CLIENT ─────────────────────────────────────────────── -->
+<div class="modal-overlay" *ngIf="selectedClient()" (click)="closeDetails()">
+    <div class="modal-container" (click)="$event.stopPropagation()">
+
+        <!-- En-tête du modal -->
+        <div class="modal-header">
+            <div class="modal-header-left">
+                <div class="modal-avatar" [ngStyle]="{'background-color': getAvatarColor(selectedClient()!.id)}">
+                    {{ initials(selectedClient()!) }}
+                </div>
+                <div class="modal-title">
+                    <h2>{{ displayName(selectedClient()!) }}</h2>
+                    <span class="modal-status" [class.active]="selectedClient()!.status === 'active'">
+                        {{ selectedClient()!.status === 'active' ? 'Actif' : 'Inactif' }}
+                    </span>
+                </div>
+            </div>
+            <button class="modal-close" (click)="closeDetails()">✕</button>
+        </div>
+
+        <!-- Corps du modal -->
+        <div class="modal-body">
+
+            <!-- Grille d'informations -->
+            <div class="info-grid">
+                <!-- Contact -->
+                <div class="info-section">
+                    <h3>📞 Contact</h3>
+                    <div class="info-list">
+                        <div class="info-item" *ngIf="selectedClient()!.phone">
+                            <span class="info-label">Téléphone</span>
+                            <a [href]="'tel:' + selectedClient()!.phone" class="info-value phone">
+                                {{ selectedClient()!.phone }}
+                            </a>
+                        </div>
+                        <div class="info-item" *ngIf="selectedClient()!.mobile && selectedClient()!.mobile !== selectedClient()!.phone">
+                            <span class="info-label">Mobile</span>
+                            <a [href]="'tel:' + selectedClient()!.mobile" class="info-value phone">
+                                {{ selectedClient()!.mobile }}
+                            </a>
+                        </div>
+                        <div class="info-item" *ngIf="selectedClient()!.email">
+                            <span class="info-label">Email</span>
+                            <span class="info-value">{{ selectedClient()!.email }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Localisation -->
+                <div class="info-section">
+                    <h3>📍 Adresse</h3>
+                    <div class="info-list">
+                        <div class="info-item" *ngIf="selectedClient()!.address">
+                            <span class="info-label">Adresse</span>
+                            <span class="info-value">{{ selectedClient()!.address }}</span>
+                        </div>
+                        <div class="info-item" *ngIf="selectedClient()!.city">
+                            <span class="info-label">Ville</span>
+                            <span class="info-value">{{ selectedClient()!.city }}</span>
+                        </div>
+                        <div class="info-item" *ngIf="selectedClient()!.postal_code">
+                            <span class="info-label">Code postal</span>
+                            <span class="info-value">{{ selectedClient()!.postal_code }}</span>
+                        </div>
+                        <div class="info-item" *ngIf="selectedClient()!.country">
+                            <span class="info-label">Pays</span>
+                            <span class="info-value">{{ selectedClient()!.country }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Informations professionnelles -->
+                <div class="info-section">
+                    <h3>🏢 Professionnel</h3>
+                    <div class="info-list">
+                        <div class="info-item" *ngIf="selectedClient()!.company_name">
+                            <span class="info-label">Entreprise</span>
+                            <span class="info-value company">{{ selectedClient()!.company_name }}</span>
+                        </div>
+                        <div class="info-item" *ngIf="selectedClient()!.tax_id">
+                            <span class="info-label">N° fiscal</span>
+                            <span class="info-value">{{ selectedClient()!.tax_id }}</span>
+                        </div>
+                        <div class="info-item" *ngIf="selectedClient()!.client_group">
+                            <span class="info-label">Groupe</span>
+                            <span class="info-value group"
+                                  [ngStyle]="{'color': selectedClient()!.client_group.color}">
+                                {{ selectedClient()!.client_group.name }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Statistiques -->
+                <div class="info-section">
+                    <h3>📊 Statistiques</h3>
+                    <div class="stats-grid">
+                        <div class="stat-box">
+                            <span class="stat-number">{{ selectedClient()!.orders_count || 0 }}</span>
+                            <span class="stat-label">Commandes</span>
+                        </div>
+                        <div class="stat-box" *ngIf="selectedClient()!.total_spent">
+                            <span class="stat-number">{{ selectedClient()!.total_spent | number:'1.0-0' }}</span>
+                            <span class="stat-label">FCFA dépensés</span>
+                        </div>
+                        <div class="stat-box" *ngIf="selectedClient()!.last_order_at">
+                            <span class="stat-number">{{ selectedClient()!.last_order_at | date:'dd/MM/yy' }}</span>
+                            <span class="stat-label">Dernière commande</span>
+                        </div>
+                        <div class="stat-box" *ngIf="selectedClient()!.average_cart">
+                            <span class="stat-number">{{ selectedClient()!.average_cart | number:'1.0-0' }}</span>
+                            <span class="stat-label">Panier moyen</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Notes -->
+                <div class="info-section full-width" *ngIf="selectedClient()!.notes">
+                    <h3>📝 Notes</h3>
+                    <div class="notes-content">
+                        {{ selectedClient()!.notes }}
+                    </div>
+                </div>
+
+                <!-- Dates clés -->
+                <div class="info-section full-width">
+                    <h3>⏱️ Dates</h3>
+                    <div class="dates-grid">
+                        <div class="date-item">
+                            <span class="date-label">Création</span>
+                            <span class="date-value">{{ selectedClient()!.created_at | date:'dd/MM/yyyy' }}</span>
+                        </div>
+                        <div class="date-item">
+                            <span class="date-label">Dernière modification</span>
+                            <span class="date-value">{{ selectedClient()!.updated_at | date:'dd/MM/yyyy' }}</span>
+                        </div>
+                        <div class="date-item" *ngIf="selectedClient()!.last_activity_at">
+                            <span class="date-label">Dernière activité</span>
+                            <span class="date-value">{{ selectedClient()!.last_activity_at | date:'dd/MM/yyyy' }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pied du modal avec actions -->
+        <div class="modal-footer">
+            <button class="modal-btn secondary" (click)="closeDetails()">Fermer</button>
+            <div class="modal-actions">
+                <a *ngIf="auth.can('clients.edit')"
+                   [routerLink]="['/clients', selectedClient()!.id, 'edit']"
+                   class="modal-btn edit"
+                   (click)="closeDetails()">
+                    ✏️ Modifier
+                </a>
+                <button *ngIf="auth.can('clients.delete')"
+                        class="modal-btn delete"
+                        (click)="deleteClient(selectedClient()!); closeDetails()">
+                    🗑️ Supprimer
+                </button>
+            </div>
+        </div>
     </div>
 </div>

@@ -1,40 +1,50 @@
 import { Component, Input, signal } from '@angular/core';
-import { CommonModule, DatePipe } from '@angular/common';
-import { OrderService } from '../../../core/services/pressing.services';
+import { CommonModule } from '@angular/common';
 import { Order } from '../../../core/models/pressing.models';
-import {FormsModule} from "@angular/forms";
+
 @Component({
-  selector: 'app-ticket-printer',
-  standalone: true,
-  imports: [CommonModule],
-  templateUrl: './ticket-printer.component.html',
-  styleUrl: './ticket-printer.component.scss'
+    selector: 'app-ticket-printer',
+    standalone: true,
+    imports: [CommonModule],
+    templateUrl: './ticket-printer.component.html',
+    styleUrl: './ticket-printer.component.scss'
 })
 export class TicketPrinterComponent {
     @Input() order!: Order;
     @Input() shopName    = 'MonPressing';
     @Input() shopAddress = '';
     @Input() shopPhone   = '';
+    @Input() showPrintButton = true; // Afficher ou non le bouton d'impression
 
-    printing  = signal(false);
-    printMode = signal<'receipt' | 'stickers' | 'prep' | null>(null);
+    viewMode = signal<'receipt' | 'stickers' | 'prep'>('receipt');
+    printing = signal(false);
 
-    constructor(private orderService: OrderService) {}
+    setViewMode(mode: 'receipt' | 'stickers' | 'prep'): void {
+        this.viewMode.set(mode);
+    }
 
-    printReceipt(): void  { this.triggerPrint('receipt'); }
-    printStickers(): void { this.triggerPrint('stickers'); }
-    printPrep(): void     { this.triggerPrint('prep'); }
-
-    private triggerPrint(mode: 'receipt' | 'stickers' | 'prep'): void {
+    // Méthode d'impression
+    printCurrentView(): void {
         this.printing.set(true);
-        this.printMode.set(mode);
 
+        // Préparer l'impression
         setTimeout(() => {
             window.print();
+
+            // Réinitialiser après impression
             setTimeout(() => {
-                this.printMode.set(null);
                 this.printing.set(false);
             }, 500);
-        }, 300);
+        }, 100);
+    }
+
+    // Obtenir le titre pour l'impression
+    getPrintTitle(): string {
+        switch(this.viewMode()) {
+            case 'receipt': return `Reçu_${this.order.receipt_number}`;
+            case 'stickers': return `Stickers_${this.order.receipt_number}`;
+            case 'prep': return `Preparation_${this.order.receipt_number}`;
+            default: return 'Ticket';
+        }
     }
 }
